@@ -3,6 +3,7 @@ API起動
 cd app
 uvicorn main:app --reload
 
+start_app実行
 
 Windows Power Shellからクエリ送信
 
