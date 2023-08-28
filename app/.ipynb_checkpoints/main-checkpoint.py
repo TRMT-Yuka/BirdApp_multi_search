@@ -14,15 +14,10 @@ import json
 from transformers import BertModel,BertJapaneseTokenizer,BertTokenizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# en_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-# en_model = BertModel.from_pretrained('bert-base-uncased')
-# jp_tokenizer = BertJapaneseTokenizer.from_pretrained('cl-tohoku/bert-base-japanese-whole-word-masking')
-# jp_model = BertModel.from_pretrained('cl-tohoku/bert-base-japanese-whole-word-masking')
-
-# Multilingual BERTのトークナイザーを読み込み
-tokenizer = BertTokenizer.from_pretrained("bert-base-multilingual-cased")
-# Multilingual BERTのモデルを読み込み
-model = BertModel.from_pretrained("bert-base-multilingual-cased")
+en_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+en_model = BertModel.from_pretrained('bert-base-uncased')
+jp_tokenizer = BertJapaneseTokenizer.from_pretrained('cl-tohoku/bert-base-japanese-whole-word-masking')
+jp_model = BertModel.from_pretrained('cl-tohoku/bert-base-japanese-whole-word-masking')
 
 
 app = FastAPI()
@@ -57,8 +52,8 @@ with open('data/vecs.json') as f:
 
 # =============queryとwordを引数にとり，BERT類似度を返す関数
 def get_bert_vec(word):
-    inputs = tokenizer([word], return_tensors='pt', padding=True, truncation=True)
-    outputs = model(**inputs)
+    inputs = jp_tokenizer([word], return_tensors='pt', padding=True, truncation=True)
+    outputs = jp_model(**inputs)
     
     hidden_states = outputs.last_hidden_state # 隠れ状態を取得
     pooled_output = outputs.pooler_output # プーリングされた状態を取得
@@ -67,50 +62,12 @@ def get_bert_vec(word):
     return embedding_word
 
 
-# def raito(query,word):
-#     q_vec = get_bert_vec(query)
-#     w_vec = get_bert_vec(word)
-#     print(q_vec)
-#     print(w_vec)
+def raito(query,word):
+    q_vec = get_bert_vec(query)
+    w_vec = get_bert_vec(word)
+    similarity = cosine_similarity(q_vec.detach().numpy(), w_vec.detach().numpy())
 
-#     x = q_vec.detach().numpy().reshape(-1,1)
-#     y = w_vec.detach().numpy().reshape(-1,1)
-
-#     print(x)
-#     print(y)
-
-#     # X = np.array(q_vec).reshape(-1,1)
-#     # Y = np.array(w_vec).reshape(-1,1)
-
-#     # print(x.shape)
-#     # print(y.shape)
-
-#     # print(X.shape)
-#     # print(Y.shape)
-
-#     # similarity = cosine_similarity(q_vec.detach().numpy(), w_vec.detach().numpy())
-#     # similarity = cosine_similarity(X,Y)
-#     similarity = cosine_similarity(x,y)
-
-#     return similarity
-
-
-def raito(query, word):
-    # 文をBERTの分散表現に変換する
-    tokens = tokenizer(query, word, return_tensors="pt", padding=True, truncation=True)
-    with torch.no_grad():
-        model.eval()
-        output = model(**tokens)
-
-    # 分散表現を抽出
-    q_vec = output.last_hidden_state[0][0]  # queryの分散表現
-    w_vec = output.last_hidden_state[0][1]  # wordの分散表現
-
-    # Cosine類似度を計算
-    similarity = cosine_similarity(q_vec.unsqueeze(0).numpy(), w_vec.unsqueeze(0).numpy())
-
-    return similarity[0][0]
-
+    return similarity
 
 # ============= id=>自身，親，子を辞書で返す関数
 def id2ans(the_id):
@@ -144,10 +101,6 @@ def search_adjacent_nodes(query: str) -> Dict:
         #英語名,日本語名,英語名・日本語名のエイリアスとの類似のクエリとの類似
         # r_in_node: rait in node,該当ノードに含まれる関連語全般とクエリの類似度を格納
         r_in_node = set()
-
-        print(raito(query,node["en_name"]))
-        print(query)
-        print(node["en_name"])
         r_in_node.add(raito(query,node["en_name"]))
         r_in_node.add(raito(query,node["ja_name"]))
         
