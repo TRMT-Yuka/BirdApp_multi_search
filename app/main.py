@@ -9,20 +9,21 @@ from transformers import Wav2Vec2ForPreTraining,Wav2Vec2Processor
 import librosa
 import numpy as np
 import json
+import pickle
 
 #bert関連
 from transformers import BertModel,BertJapaneseTokenizer,BertTokenizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# en_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-# en_model = BertModel.from_pretrained('bert-base-uncased')
-# jp_tokenizer = BertJapaneseTokenizer.from_pretrained('cl-tohoku/bert-base-japanese-whole-word-masking')
-# jp_model = BertModel.from_pretrained('cl-tohoku/bert-base-japanese-whole-word-masking')
+en_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+en_model = BertModel.from_pretrained('bert-base-uncased')
+ja_tokenizer = BertJapaneseTokenizer.from_pretrained('cl-tohoku/bert-base-japanese-whole-word-masking')
+ja_model = BertModel.from_pretrained('cl-tohoku/bert-base-japanese-whole-word-masking')
 
-# Multilingual BERTのトークナイザーを読み込み
-tokenizer = BertTokenizer.from_pretrained("bert-base-multilingual-cased")
-# Multilingual BERTのモデルを読み込み
-model = BertModel.from_pretrained("bert-base-multilingual-cased")
+# # Multilingual BERTのトークナイザーを読み込み
+# tokenizer = BertTokenizer.from_pretrained("bert-base-multilingual-cased")
+# # Multilingual BERTのモデルを読み込み
+# model = BertModel.from_pretrained("bert-base-multilingual-cased")
 
 
 app = FastAPI()
@@ -44,9 +45,19 @@ w2v2 = Wav2Vec2ForPreTraining.from_pretrained("wav2vec2-bird-jp-all")
 
 
 # =============vecs(音埋込)の読込
-with open('data/vecs.json') as f:
+with open('data/sound_vecs.json') as f:
     sound_vecs = json.load(f)
 
+
+
+# =============name_vecsの読込
+
+word_vecs = []
+for filename in ["en_name_vecs","ja_name_vecs","en_aliases_vecs_all","ja_aliases_vecs"]:
+    with open('data/'+filename+'.bin','rb') as bf:
+        word_vecs.append(pickle.load(bf))
+    
+en_name_vecs,ja_name_vecs,en_aliases_vecs,ja_aliases_vecs = word_vecs
 
 
 # =============queryとwordを引数にとり，類似度を返す関数=>これはBERTにしなければならない
@@ -54,62 +65,53 @@ with open('data/vecs.json') as f:
 #     raito = difflib.SequenceMatcher(None, query, word).ratio()
 #     return raito
 
-
 # =============queryとwordを引数にとり，BERT類似度を返す関数
-def get_bert_vec(word):
-    inputs = tokenizer([word], return_tensors='pt', padding=True, truncation=True)
-    outputs = model(**inputs)
-    
-    hidden_states = outputs.last_hidden_state # 隠れ状態を取得
-    pooled_output = outputs.pooler_output # プーリングされた状態を取得
-    embedding_word = hidden_states[0].mean(dim=1)  # 隠れ状態のインデックス（0）選択 # 隠れ状態の平均を取る
-    
-    return embedding_word
 
-
-# def raito(query,word):
-#     q_vec = get_bert_vec(query)
-#     w_vec = get_bert_vec(word)
-#     print(q_vec)
-#     print(w_vec)
-
-#     x = q_vec.detach().numpy().reshape(-1,1)
-#     y = w_vec.detach().numpy().reshape(-1,1)
-
-#     print(x)
-#     print(y)
-
-#     # X = np.array(q_vec).reshape(-1,1)
-#     # Y = np.array(w_vec).reshape(-1,1)
-
-#     # print(x.shape)
-#     # print(y.shape)
-
-#     # print(X.shape)
-#     # print(Y.shape)
-
-#     # similarity = cosine_similarity(q_vec.detach().numpy(), w_vec.detach().numpy())
-#     # similarity = cosine_similarity(X,Y)
-#     similarity = cosine_similarity(x,y)
-
-#     return similarity
-
-
-def raito(query, word):
+def raito_bert_en(q_vec, word, aliases):
     # 文をBERTの分散表現に変換する
-    tokens = tokenizer(query, word, return_tensors="pt", padding=True, truncation=True)
-    with torch.no_grad():
-        model.eval()
-        output = model(**tokens)
+    tokenizer = en_tokenizer
+    model = en_model
+    
+    if aliases == False:w_vec = en_name_vecs[word]# wordの分散表現
+    else:w_vec = en_aliases_vecs[word]
 
-    # 分散表現を抽出
-    q_vec = output.last_hidden_state[0][0]  # queryの分散表現
-    w_vec = output.last_hidden_state[0][1]  # wordの分散表現
-
-    # Cosine類似度を計算
     similarity = cosine_similarity(q_vec.unsqueeze(0).numpy(), w_vec.unsqueeze(0).numpy())
+    return similarity[0][0]# Cosine類似度
 
-    return similarity[0][0]
+
+def raito_bert_ja(q_vec, word, aliases):
+    # 文をBERTの分散表現に変換する
+    tokenizer = ja_tokenizer
+    model = ja_model
+    
+    if aliases == False:w_vec = ja_name_vecs[word]
+    else:w_vec = ja_aliases_vecs[word]
+
+
+    similarity = cosine_similarity(q_vec.unsqueeze(0).numpy(), w_vec.unsqueeze(0).numpy())
+    return similarity[0][0]# Cosine類似度
+
+
+# 日英両対応
+# def raito_bert(q_vec, word, en, aliases):
+#     # 文をBERTの分散表現に変換する
+#     if en == True:
+#         tokenizer = en_tokenizer
+#         model = en_model
+        
+#         if aliases == False:w_vec = en_name_vecs[word]# wordの分散表現
+#         else:w_vec = en_aliases_vecs[word]
+            
+#     else:
+#         tokenizer = ja_tokenizer
+#         model = ja_model
+        
+#         if aliases == False:w_vec = ja_name_vecs[word]
+#         else:w_vec = ja_aliases_vecs[word]
+
+
+#     similarity = cosine_similarity(q_vec.unsqueeze(0).numpy(), w_vec.unsqueeze(0).numpy())
+#     return similarity[0][0]# Cosine類似度
 
 
 # ============= id=>自身，親，子を辞書で返す関数
@@ -132,50 +134,148 @@ def cos_sim(v1, v2):
 
 
 # =============# 自然言語クエリに最も近いnameを検索,対応するノードのidを取得=>自身，親，子を辞書で返す
-@app.get("/search")#途中
-def search_adjacent_nodes(query: str) -> Dict:
-    # Wikidata内で最大の類似度格納変数
-    max_in_wikidata = 0.0
-    # Wikidata内で最大の類似度のID格納変数
-    max_id_in_wikidata = None
 
-    # id_cos_d
+@app.get("/en_search")# 英語BERT検索
+def search_adjacent_nodes(query: str) -> Dict:
+    max_in_wikidata = 0.0# Wikidata内で最大の類似度格納変数
+    max_id_in_wikidata = None# Wikidata内で最大の類似度のID格納変数
+
+    #英語名,およびそのエイリアスとクエリとの類似度
     for node_id,node in nodes.items():
-        #英語名,日本語名,英語名・日本語名のエイリアスとの類似のクエリとの類似
         # r_in_node: rait in node,該当ノードに含まれる関連語全般とクエリの類似度を格納
         r_in_node = set()
 
-        print(raito(query,node["en_name"]))
-        print(query)
-        print(node["en_name"])
-        r_in_node.add(raito(query,node["en_name"]))
-        r_in_node.add(raito(query,node["ja_name"]))
+        tokens = en_tokenizer(query, return_tensors="pt", padding=True, truncation=True)
+        with torch.no_grad():
+            en_model.eval()
+            output = en_model(**tokens)
+        q_vec = output.last_hidden_state[0][0]  # queryの分散表現
+
+        r_in_node.add(raito_bert(q_vec,node["en_name"],aliases=False))
         
         if isinstance(node["en_aliases"], dict):
             for k,v in node["en_aliases"].items():
-                r_in_node.add(raito(query,v))
-        if isinstance(node["ja_aliases"], dict):
-            for k,v in node["ja_aliases"].items():
-                r_in_node.add(raito(query,v))
-
-
+                r_in_node.add(raito_bert(q_vec,v,aliases=True))
+        
         if max(r_in_node) != 0.0:
-            # print(node["ja_name"]+": "+str(max(r_in_node)))
-
             if max(r_in_node) > max_in_wikidata:
                 max_in_wikidata = max(r_in_node)
                 max_id_in_wikidata = node_id
 
     if max_id_in_wikidata!=None:
-        print(str(id2ans(max_id_in_wikidata))+": "+str(max_in_wikidata))
         return id2ans(max_id_in_wikidata)
     else:
         return None
 
+@app.get("/ja_search")# BERT検索
+def search_adjacent_nodes(query: str) -> Dict:
+   max_in_wikidata = 0.0# Wikidata内で最大の類似度格納変数
+    max_id_in_wikidata = None# Wikidata内で最大の類似度のID格納変数
+
+    #日本語名,およびそのエイリアスとクエリとの類似度
+    for node_id,node in nodes.items():
+        # r_in_node: rait in node,該当ノードに含まれる関連語全般とクエリの類似度を格納
+        r_in_node = set()
+
+        tokens = ja_tokenizer(query, return_tensors="pt", padding=True, truncation=True)
+        with torch.no_grad():
+            ja_model.eval()
+            output = ja_model(**tokens)
+        q_vec = output.last_hidden_state[0][0]  # queryの分散表現
+
+        r_in_node.add(raito_bert(q_vec,node["ja_name"],aliases=False))
+        
+        if isinstance(node["ja_aliases"], dict):
+            for k,v in node["ja_aliases"].items():
+                r_in_node.add(raito_bert(q_vec,v,aliases=True))
+
+        if max(r_in_node) != 0.0:
+            if max(r_in_node) > max_in_wikidata:
+                max_in_wikidata = max(r_in_node)
+                max_id_in_wikidata = node_id
+
+    if max_id_in_wikidata!=None:
+        return id2ans(max_id_in_wikidata)
+    else:
+        return None
+
+# @app.get("/search")# BERT日英検索（要入力言語判定）
+# def search_adjacent_nodes(query: str) -> Dict:
+#     # Wikidata内で最大の類似度格納変数
+#     max_in_wikidata = 0.0
+#     # Wikidata内で最大の類似度のID格納変数
+#     max_id_in_wikidata = None
+#     for node_id,node in nodes.items():
+#         #英語名,日本語名,英語名・日本語名のエイリアスとの類似のクエリとの類似
+#         # r_in_node: rait in node,該当ノードに含まれる関連語全般とクエリの類似度を格納
+#         r_in_node = set()
+
+
+#         tokens = tokenizer(query, return_tensors="pt", padding=True, truncation=True)
+#         with torch.no_grad():
+#             model.eval()
+#             output = model(**tokens)
+#         q_vec = output.last_hidden_state[0][0]  # queryの分散表現
+
+#         r_in_node.add(raito_bert(q_vec,node["en_name"],en=True,aliases=False)) #途中！
+#         r_in_node.add(raito_bert(q_vec,node["ja_name"],en=False,aliases=False))
+        
+#         if isinstance(node["en_aliases"], dict):
+#             for k,v in node["en_aliases"].items():
+#                 r_in_node.add(raito_bert(q_vec,v,en=True,aliases=True))
+#         if isinstance(node["ja_aliases"], dict):
+#             for k,v in node["ja_aliases"].items():
+#                 r_in_node.add(raito_bert(q_vec,v,en=False,aliases=True))
+
+
+#         if max(r_in_node) != 0.0:
+#             if max(r_in_node) > max_in_wikidata:
+#                 max_in_wikidata = max(r_in_node)
+#                 max_id_in_wikidata = node_id
+
+#     if max_id_in_wikidata!=None:
+#         return id2ans(max_id_in_wikidata)
+#     else:
+#         return None
+
+# @app.get("/search")# 部分一致検索
+# def search_adjacent_nodes(query: str) -> Dict:
+#     # Wikidata内で最大の類似度格納変数
+#     max_in_wikidata = 0.0
+#     # Wikidata内で最大の類似度のID格納変数
+#     max_id_in_wikidata = None
+
+#     # id_cos_d
+#     for node_id,node in nodes.items():
+#         #英語名,日本語名,英語名・日本語名のエイリアスとの類似のクエリとの類似
+#         # r_in_node: rait in node,該当ノードに含まれる関連語全般とクエリの類似度を格納
+#         r_in_node = set()
+
+#         r_in_node.add(raito(query,node["en_name"]))
+#         r_in_node.add(raito(query,node["ja_name"]))
+        
+#         if isinstance(node["en_aliases"], dict):
+#             for k,v in node["en_aliases"].items():
+#                 r_in_node.add(raito(query,v))
+#         if isinstance(node["ja_aliases"], dict):
+#             for k,v in node["ja_aliases"].items():
+#                 r_in_node.add(raito(query,v))
+
+
+#         if max(r_in_node) != 0.0:
+#             if max(r_in_node) > max_in_wikidata:
+#                 max_in_wikidata = max(r_in_node)
+#                 max_id_in_wikidata = node_id
+
+#     if max_id_in_wikidata!=None:
+#         return id2ans(max_id_in_wikidata)
+#     else:
+#         return None
+
 
 
 # =============音声 => 再類似ノード(記事の欠陥により複数あり)・その親と子を含む辞書をリストに格納し返す関数
-@app.post("/sound/")
+@app.post("/sound_search/")
 async def create_upload_file(file: UploadFile = File(...)):
     # アップロードされた音声ファイルを保存
     file_path = f"uploaded/{file.filename}"

@@ -1,4 +1,6 @@
+/data/
 /data_making/
 /data_sample/
+/__pycache__/
 /wav2vec2-bird-jp-all/
 /uploaded/
