@@ -1,64 +1,81 @@
 from fastapi import FastAPI,UploadFile,File
 from typing import List,Dict
-import csv
 import difflib
-from collections import defaultdict
-import os
-import torch
-from transformers import Wav2Vec2ForPreTraining,Wav2Vec2Processor
 import librosa
+from collections import defaultdict
+from dotenv import load_dotenv
+from pykakasi import kakasi
+
+import torch
+from transformers import Wav2Vec2ForPreTraining,Wav2Vec2Processor,BertModel,BertJapaneseTokenizer,BertTokenizer
+from sklearn.metrics.pairwise import cosine_similarity
+
 import numpy as np
 import json
 import pickle
-
-#bert関連
-from transformers import BertModel,BertJapaneseTokenizer,BertTokenizer
-from sklearn.metrics.pairwise import cosine_similarity
-
-# en_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-# en_model = BertModel.from_pretrained('bert-base-uncased')
-# ja_tokenizer = BertJapaneseTokenizer.from_pretrained('cl-tohoku/bert-base-japanese-whole-word-masking')
-# ja_model = BertModel.from_pretrained('cl-tohoku/bert-base-japanese-whole-word-masking')
-
-# # Multilingual BERTのトークナイザーを読み込み
-# tokenizer = BertTokenizer.from_pretrained("bert-base-multilingual-cased")
-# # Multilingual BERTのモデルを読み込み
-# model = BertModel.from_pretrained("bert-base-multilingual-cased")
+import csv
+import os
 
 
 app = FastAPI()
 
-print("!!!")
-# =============WikiDATAの読込
+# =============知識グラフ
 nodes=dict()
 p2c=defaultdict(list)
 with open('data/all_BirdDBnode.tsv', mode='r', newline='', encoding='utf-8') as f:
     for row in csv.DictReader(f, delimiter = '\t'):
         nodes[row["id"]] = row
         p2c[row["parent_taxon"]].append(row["id"])
+print("knowledge data loading is complete !")
 
 
+# =============音声モデル
+w2v2 = Wav2Vec2ForPreTraining.from_pretrained("model/wav2vec2-bird-jp-all")
+print("sound model loading is complete !")
 
-# =============wav2vec2の読込
-w2v2 = Wav2Vec2ForPreTraining.from_pretrained("wav2vec2-bird-jp-all")
 
-
-
-# =============vecs(音埋込)の読込
+# =============音声埋め込み
 with open('data/sound_vecs.json') as f:
     sound_vecs = json.load(f)
+print("sound vec data loading is complete !")
 
 
+# =============言語モデル
+# # ローカルから日英BERTのモデル・トークナイザーを読み込み
+# en_model = BertModel.from_pretrained('model/en_model')
+# en_tokenizer = BertTokenizer.from_pretrained('model/en_tokenizer')
+# ja_model = BertModel.from_pretrained('model/ja_model')
+# ja_tokenizer = BertJapaneseTokenizer.from_pretrained('model/ja_tokenizer')
+# print("language model loading is complete !")
 
-# =============name_vecsの読込
+# # リモートから日英BERTのモデル・トークナイザーを読み込み
+# en_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+# en_model = BertModel.from_pretrained('bert-base-uncased')
+# ja_tokenizer = BertJapaneseTokenizer.from_pretrained('cl-tohoku/bert-base-japanese-whole-word-masking')
+# ja_model = BertModel.from_pretrained('cl-tohoku/bert-base-japanese-whole-word-masking')
 
-# word_vecs = []
-# for filename in ["en_name_vecs","ja_name_vecs","en_aliases_vecs_all","ja_aliases_vecs"]:
-#     with open('data/'+filename+'.bin','rb') as bf:
-#         word_vecs.append(pickle.load(bf))
-    
-# en_name_vecs,ja_name_vecs,en_aliases_vecs,ja_aliases_vecs = word_vecs
+# # Multilingual BERTのモデル・トークナイザーを読み込み
+# tokenizer = BertTokenizer.from_pretrained("bert-base-multilingual-cased")
+# model = BertModel.from_pretrained("bert-base-multilingual-cased")
 
+# =============言語埋め込み
+
+# with open('data/en_name_vecs.bin','rb') as bf:
+#     en_name_vecs = pickle.load(bf)
+# print("en_name_vecs data loading is complete !")
+
+# with open('data/ja_name_vecs.bin','rb') as bf:
+#     ja_name_vecs = pickle.load(bf)
+# print("ja_name_vecs data loading is complete !")
+
+# with open('data/en_aliases_vecs_all.bin','rb') as bf:
+#     en_aliases_vecs = pickle.load(bf)
+# print("en_aliases_vecs_all data loading is complete !")
+
+# with open('data/ja_aliases_vecs.bin','rb') as bf:
+#     ja_aliases_vecs = pickle.load(bf)
+# print("ja_aliases_vecs data loading is complete !")
+# print("language vec data loading is complete !")
 
 # =============queryとwordを引数にとり，類似度を返す関数=>これはBERTにしなければならない
 def raito(query,word):
@@ -132,6 +149,17 @@ def cos_sim(v1, v2):
     return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
 
 
+# ============= 漢字および平仮名をカタカナに修正する関数
+def to_katakana(text):
+    # kakasiオブジェクトを作成
+    kakasi_instance = kakasi()
+    kakasi_instance.setMode("J", "K")  # J（漢字）をH（ひらがな）に変換
+    kakasi_instance.setMode("H", "K")  # H（ひらがな）をK（カタカナ）に変換
+    
+    # カタカナに変換
+    conv = kakasi_instance.getConverter()
+    katakana_text = conv.do(text)
+    return katakana_text
 
 # =============# 自然言語クエリに最も近いnameを検索,対応するノードのidを取得=>自身，親，子を辞書で返す
 
@@ -241,6 +269,8 @@ def cos_sim(v1, v2):
 
 @app.get("/search")# 部分一致検索
 def search_adjacent_nodes(query: str) -> Dict:
+
+    query = to_katakana(query)
     # Wikidata内で最大の類似度格納変数
     max_in_wikidata = 0.0
     # Wikidata内で最大の類似度のID格納変数
