@@ -3,8 +3,9 @@ from typing import List,Dict
 import difflib
 import librosa
 from collections import defaultdict
-from dotenv import load_dotenv
 from pykakasi import kakasi
+import openai
+from dotenv import load_dotenv
 
 import torch
 from transformers import Wav2Vec2ForPreTraining,Wav2Vec2Processor,BertModel,BertJapaneseTokenizer,BertTokenizer
@@ -131,17 +132,36 @@ def raito(query,word):
 #     return similarity[0][0]# Cosine類似度
 
 
-# ============= id=>自身，親，子を辞書で返す関数
-def id2ans(the_id):
-    ans = {"myself":dict(),"my_parent":None,"my_children":None}
-    ans["myself"] = nodes[the_id]
-    # 指定したノードidのWikiData隣接ノードを取得
-    if ans["myself"]["parent_taxon"] in nodes:
-        ans["my_parent"] = nodes[ans["myself"]["parent_taxon"]]
-    if the_id in p2c:
-        ans["my_children"] = [nodes[each_chile_id] for each_chile_id in p2c[the_id]]
-    return ans
+# ============= id=>必要な項目のみを含む自身，親，子の辞書を返す関数
 
+def small_d(d):
+    type(d)
+    if d != None:
+        small_d = {"en_name":d["en_name"],
+                    "ja_name":d["ja_name"],
+                    "en_aliases":d["en_aliases"],
+                    "ja_aliases":d["ja_aliases"],
+                    "img_urls":d["img_urls"],
+                    "taxon_name":d["taxon_name"]
+                    }
+    else:
+        small_d == None
+    return small_d
+
+
+def id2ans(myself_id):
+    ans = {"myself":dict(),"my_parent":None,"my_children":None}
+    myself_d  = nodes[myself_id]
+    parent_id = nodes[myself_id]["parent_taxon"]
+    parent_d  = nodes[parent_id]
+
+    ans["myself"] = small_d(myself_d)
+    # 指定したノードidのWikiData隣接ノードを取得
+    if parent_id in nodes:
+        ans["my_parent"] = small_d(parent_d)
+    if myself_id in p2c:
+        ans["my_children"] = [small_d(nodes[chile_id]) for chile_id in p2c[myself_id]]
+    return ans
 
 
 # ============= 2つのnumpy.arrayデータの類似度算出関数
@@ -160,6 +180,25 @@ def to_katakana(text):
     conv = kakasi_instance.getConverter()
     katakana_text = conv.do(text)
     return katakana_text
+
+
+# ============= ChatGPT応答用関数
+# OpenAI APIキーを初期化
+load_dotenv()
+openai.api_key = os.getenv("API_KEY")
+debug_mode = os.getenv("DEBUG")
+
+# ChatGPTに質問を送信する関数
+def ask_gpt3(question, max_tokens=100):
+    bird_prompt = "下記のデータからわかる情報を日本語の話し言葉で表現してください。回答は「検索結果は以下の通りです：」の文言より開始してください。"
+    response = openai.Completion.create(
+        engine="text-davinci-002",
+        prompt=bird_prompt+f"{question}\n",
+        max_tokens=max_tokens,
+        stop=None,
+        temperature=0.7,
+    )
+    return response.choices[0].text.strip()
 
 # =============# 自然言語クエリに最も近いnameを検索,対応するノードのidを取得=>自身，親，子を辞書で返す
 
@@ -300,7 +339,11 @@ def search_adjacent_nodes(query: str) -> Dict:
                 max_id_in_wikidata = node_id
     print(2)
     if max_id_in_wikidata!=None:
-        return id2ans(max_id_in_wikidata)
+        ans_json = id2ans(max_id_in_wikidata)
+        print(ans_json)
+        gpt_ans = ask_gpt3(ans_json)
+        print("ChatGPT's answer:"+gpt_ans)
+        return gpt_ans
     else:
         return None
 
