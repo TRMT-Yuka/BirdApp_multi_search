@@ -8,8 +8,10 @@ import openai
 from dotenv import load_dotenv
 
 # import jinja2
-# from fastapi.templating import Jinja2Templates
-# from fastapi.staticfiles import StaticFiles
+
+from fastapi import FastAPI,Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 
 import numpy as np
@@ -24,8 +26,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 # =============アプリケーション
 app = FastAPI()
-# app.mount("/static", StaticFiles(directory="../static"), name="static")
-# templates = Jinja2Templates(directory="../templates/")
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 # =============知識グラフ
 nodes=dict()
@@ -319,9 +321,72 @@ def ask_gpt3(question, max_tokens=2600):
 #     else:
 #         return None
 
-@app.get("/search/",)# 部分一致検索
-async def search_adjacent_nodes(query: str) -> Dict:
 
+# HTML連携前　保存用
+# @app.get("/search/",)# 部分一致検索
+# async def search_adjacent_nodes(query: str) -> Dict:
+
+#     query = to_katakana(query)
+#     # Wikidata内で最大の類似度格納変数
+#     max_in_wikidata = 0.0
+#     # Wikidata内で最大の類似度のID格納変数
+#     max_id_in_wikidata = None
+
+#     # id_cos_d
+#     print(1)
+#     for node_id,node in nodes.items():
+#         #英語名,日本語名,英語名・日本語名のエイリアスとの類似のクエリとの類似
+#         # r_in_node: rait in node,該当ノードに含まれる関連語全般とクエリの類似度を格納
+#         r_in_node = set()
+
+#         r_in_node.add(raito(query,node["en_name"]))
+#         r_in_node.add(raito(query,node["ja_name"]))
+        
+#         if isinstance(node["en_aliases"], dict):
+#             for k,v in node["en_aliases"].items():
+#                 r_in_node.add(raito(query,v))
+#         if isinstance(node["ja_aliases"], dict):
+#             for k,v in node["ja_aliases"].items():
+#                 r_in_node.add(raito(query,v))
+
+
+#         if max(r_in_node) != 0.0:
+#             if max(r_in_node) > max_in_wikidata:
+#                 max_in_wikidata = max(r_in_node)
+#                 max_id_in_wikidata = node_id
+#     print(2)
+#     if max_id_in_wikidata!=None:
+#         ans_json = id2ans(max_id_in_wikidata)
+#         # print(ans_json)
+
+#         # gpt_ans_self = ask_gpt3(ans_json["myself"])
+#         # gpt_ans_parent = ask_gpt3(ans_json["my_parent"])
+#         # gpt_ans_children = ask_gpt3(ans_json["my_children"])
+#         # print("ChatGPT's answer:"+gpt_ans)
+#         # data = {"gpt_ans_self": gpt_ans_self,"gpt_ans_parent": gpt_ans_parent, "gpt_ans_children": gpt_ans_children}
+#         data = {"dammy_data":"Your system is working fine!"}
+#         # return data
+#         return 
+
+#     else:
+#         return None
+
+@app.get("/",response_class=HTMLResponse)
+async def read_root(request:Request):
+    dammy_data = "No data"
+    return templates.TemplateResponse("testpage.html", {"request": request, "dammy_data": dammy_data}) 
+
+
+
+# @app.get("/search/",)# 部分一致検索
+
+@app.post("/", response_class=HTMLResponse)
+async def search_adjacent_nodes(request:Request):
+
+    form_data = await request.form()
+    query = form_data["query"]
+
+    # query="鶴"
     query = to_katakana(query)
     # Wikidata内で最大の類似度格納変数
     max_in_wikidata = 0.0
@@ -355,15 +420,30 @@ async def search_adjacent_nodes(query: str) -> Dict:
         ans_json = id2ans(max_id_in_wikidata)
         # print(ans_json)
 
-        gpt_ans_self = ask_gpt3(ans_json["myself"])
-        gpt_ans_parent = ask_gpt3(ans_json["my_parent"])
-        gpt_ans_children = ask_gpt3(ans_json["my_children"])
-        # print("ChatGPT's answer:"+gpt_ans)
-        data = {"gpt_ans": "OK"}
-        return data
+        # gpt_ans_self = ask_gpt3(ans_json["myself"])
+        # gpt_ans_parent = ask_gpt3(ans_json["my_parent"])
+        # gpt_ans_children = ask_gpt3(ans_json["my_children"])
+
+        #一旦
+        gpt_ans_self = "ツルは、鳥類の中でも特に大きい鳥であり、ツル科（Gruidae）に属する鳥です。英語名は「Crane」となっており、体長は1.5-1.8メートル、体重は4-6キログラムとなっています。頭部の色は褐色から黒色まで変化し、胸部から尾部にかけて白色の模様が見られます。翼は非常に大きく、飛行時には振り子のような動きをします。ツルは、草原や湿地などに生息する大型の鳥であり、ミヤマツルやオオツルなどが有名です。宿泊地は冬期に南へ移動し、豊かな水源や草原を求めて主にインドや中国などの亜熱帯地域を中心に広く移動します。ツルは餌を釣り上げる行動をとり、草原の他にも沼沢地などの水辺にも行きます。ツルは繁殖期には集団で繁殖し、巣を枝、葉、茎などで作ります。ツルは、家禽類として古来から飼育され、食用、羽毛、肉などの用途に使われてきました。また、風俗習慣や文化表現などにも使用されてきました。"
+        gpt_ans_parent = "ツル目とは、鳥類の一綱であるグルイフォーム（Gruiformes）に属します。グルイフォームとは、主として水辺に住む、鷺科（草原鶴）、カモ科（カモ）、コウノトリ科（コウノトリ）などの林鳥の他、カナリア科（カナリア）、サギ科（サギ）、カラス科（カラス）などの鳥類を含む綱です。グルイフォームには、大きさが大きいものから小さいものまで様々な種類の鳥がいますが、一般的には、大きな翼を持つ、とても美しい鳥として知られています。グルイフォームの鳥の標準的な外見は、長い頭、短い頭部、長い首、茶色の全身、細長い尾などが特徴的です。また、特徴的な形をしていることから、グルイフォームの鳥は、大規模な湖沼などで見かけられることが多いです。"
+        gpt_ans_children = "ツル属（Grus）は、カンムリヅル属（Balearica）に分類される鳥類の総称です。ツル属は、ツル、カンムリヅル、レウコジェラヌス（Leucogeranus）、ゲラノプシス（Geranopsis）、アンスロポイデス（Anthropoides）、イオバレリカ（Eobalearica）、ブゲラヌス（Bugeranus）、カンムリヅル亜科（Balearicinae）、グリ亜科（Gruinae）などの亜科があります。 ツル属の鳥は、体長60cm前後の遠くの草原を尋ね回る大型の鳥です。また、その鳥は、褐色の上背部と、胸部には白い斑点が見られます。ツル属の鳥は、その力強い鳴き声でも知られており、多くの生息地を持つため、地域によって分布が異なります。特に、アジア、アフリカ、ヨーロッパなど、多くの国で見られます。ツル属の鳥は、家畜の餌や農作物などを食べて生活し、繁殖期間中には、川や沼津などの水場を訪れ、水辺の地形を利用して繁殖します。"
+
+        dammy_data = query
+        print(dammy_data)
+        # return templates.TemplateResponse("testpage.html", {"request": request, "dammy_data": dammy_data}) 
+        return templates.TemplateResponse("testpage.html", 
+            {"request": request,
+            "gpt_ans_self": gpt_ans_self,
+            "gpt_ans_parent": gpt_ans_parent,
+            "gpt_ans_children": gpt_ans_children}
+            ) 
+
+
 
     else:
         return None
+
 
 # =============音声 => 再類似ノード(記事の欠陥により複数あり)・その親と子を含む辞書をリストに格納し返す関数
 @app.post("/sound/")
@@ -425,13 +505,12 @@ async def create_upload_file(file: UploadFile = File(...)):
 #     """
 #     return HTMLResponse(content=html_content)
 
-from fastapi import FastAPI,Request
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+
+
 
 # app = FastAPI()
-templates = Jinja2Templates(directory="templates")
 
-@app.get("/testpage", response_class=HTMLResponse)
-async def get_testpage(request: Request, name: str = "User"):
-    return templates.TemplateResponse("testpage.html", {"request": request, "name": name})
+
+# @app.get("/testpage", response_class=HTMLResponse)
+# async def get_testpage(request:Request, name: str = "User"):
+#     return templates.TemplateResponse("testpage.html", {"request": request, "name": name})
