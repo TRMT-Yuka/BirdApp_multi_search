@@ -7,9 +7,10 @@ from pykakasi import kakasi
 import openai
 from dotenv import load_dotenv
 
-import torch
-from transformers import Wav2Vec2ForPreTraining,Wav2Vec2Processor,BertModel,BertJapaneseTokenizer,BertTokenizer
-from sklearn.metrics.pairwise import cosine_similarity
+# import jinja2
+# from fastapi.templating import Jinja2Templates
+# from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 
 import numpy as np
 import json
@@ -17,8 +18,14 @@ import pickle
 import csv
 import os
 
+import torch
+from transformers import Wav2Vec2ForPreTraining,Wav2Vec2Processor,BertModel,BertJapaneseTokenizer,BertTokenizer
+from sklearn.metrics.pairwise import cosine_similarity
 
+# =============アプリケーション
 app = FastAPI()
+# app.mount("/static", StaticFiles(directory="../static"), name="static")
+# templates = Jinja2Templates(directory="../templates/")
 
 # =============知識グラフ
 nodes=dict()
@@ -135,7 +142,7 @@ def raito(query,word):
 # ============= id=>必要な項目のみを含む自身，親，子の辞書を返す関数
 
 def small_d(d):
-    type(d)
+    print(d)
     if d != None:
         small_d = {"en_name":d["en_name"],
                     "ja_name":d["ja_name"],
@@ -189,16 +196,22 @@ openai.api_key = os.getenv("API_KEY")
 debug_mode = os.getenv("DEBUG")
 
 # ChatGPTに質問を送信する関数
-def ask_gpt3(question, max_tokens=100):
-    bird_prompt = "下記のデータからわかる情報を日本語の話し言葉で表現してください。回答は「検索結果は以下の通りです：」の文言より開始してください。"
+def ask_gpt3(question, max_tokens=2600):
+    # bird_prompt = "次のjsonがどのような情報を持っているかを「お探しの鳥はこれかも：」から始まる簡潔な話し言葉で伝えてください。"
+    # bird_prompt = "このjsonデータについて，何が分かりますか？"
+    bird_prompt = "このデータを基にこの鳥について解説して"
+
     response = openai.Completion.create(
-        engine="text-davinci-002",
+        engine="text-davinci-003",
         prompt=bird_prompt+f"{question}\n",
         max_tokens=max_tokens,
         stop=None,
         temperature=0.7,
     )
     return response.choices[0].text.strip()
+
+# =============# 結果表示用Webサイト練習用
+
 
 # =============# 自然言語クエリに最も近いnameを検索,対応するノードのidを取得=>自身，親，子を辞書で返す
 
@@ -306,8 +319,8 @@ def ask_gpt3(question, max_tokens=100):
 #     else:
 #         return None
 
-@app.get("/search")# 部分一致検索
-def search_adjacent_nodes(query: str) -> Dict:
+@app.get("/search/",)# 部分一致検索
+async def search_adjacent_nodes(query: str) -> Dict:
 
     query = to_katakana(query)
     # Wikidata内で最大の類似度格納変数
@@ -340,14 +353,17 @@ def search_adjacent_nodes(query: str) -> Dict:
     print(2)
     if max_id_in_wikidata!=None:
         ans_json = id2ans(max_id_in_wikidata)
-        print(ans_json)
-        gpt_ans = ask_gpt3(ans_json)
-        print("ChatGPT's answer:"+gpt_ans)
-        return gpt_ans
+        # print(ans_json)
+
+        gpt_ans_self = ask_gpt3(ans_json["myself"])
+        gpt_ans_parent = ask_gpt3(ans_json["my_parent"])
+        gpt_ans_children = ask_gpt3(ans_json["my_children"])
+        # print("ChatGPT's answer:"+gpt_ans)
+        data = {"gpt_ans": "OK"}
+        return data
+
     else:
         return None
-
-
 
 # =============音声 => 再類似ノード(記事の欠陥により複数あり)・その親と子を含む辞書をリストに格納し返す関数
 @app.post("/sound/")
@@ -383,3 +399,39 @@ async def create_upload_file(file: UploadFile = File(...)):
         ans_list.append(id2ans(id_cos_tup[0]))
     print(ans_list)
     return ans_list
+
+
+
+
+
+# from fastapi.responses import HTMLResponse
+
+# @app.get("/testpage", response_class=HTMLResponse)
+# async def get_html():
+#     html_content = """
+#     <!DOCTYPE html>
+#     <html>
+#     <head>
+#         <title>FastAPI HTML</title>
+#     </head>
+#     """
+
+#     """
+#     <body>
+#         <h1>Hello, FastAPI HTML!</h1>
+#         <p>This is an example of returning HTML content from FastAPI.</p>
+#     </body>
+#     </html>
+#     """
+#     return HTMLResponse(content=html_content)
+
+from fastapi import FastAPI,Request
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
+
+# app = FastAPI()
+templates = Jinja2Templates(directory="templates")
+
+@app.get("/testpage", response_class=HTMLResponse)
+async def get_testpage(request: Request, name: str = "User"):
+    return templates.TemplateResponse("testpage.html", {"request": request, "name": name})
