@@ -21,13 +21,28 @@
         </div>
     </form>
 
+<!-- 
+"self_taxon_name"
+"self_ja_name"
+"self_ja_aliases"
+"self_en_name"
+"self_en_aliases"
+"self_link"
+"self_imgs_list"-->
 
     <!-- <h1>Welcome to the Test Page, {{ dammy_data }}!</h1> -->
-    <h5>最も近い鳥種<h5>
-    <a>{{ gpt_ans_self }}</a>
-    <h5>より広い鳥種<h5>
-    <p>{{ gpt_ans_parent }}</p>
-    <h5>この鳥種の仲間<h5>
-    <p>{{ gpt_ans_children }}</p>
+    <h2>最も近い鳥種</h2>
+    <h5><a href="{{ self_link }}">{{ self_ja_name }}</a> {{ self_ja_aliases }}</h5>
+    <h5><a href="{{ self_link }}">{{ self_en_name }}</a> {{ self_en_aliases }}</h5>
+    <ul>
+        {% for item in self_imgs_list %}
+        <li>{{ item }}</li>
+        {% endfor %}
+    </ul>
+    <h5>解説</h5><p>{{ gpt_ans_self }}</p>
+    <h2>より広い鳥種</h2>
+    <h5>解説</h5><p>{{ gpt_ans_parent }}</p>
+    <h2>この鳥種の仲間</h2>
+    <h5>解説</h5><p>{{ gpt_ans_children }}</p>
 </body>
 </html>

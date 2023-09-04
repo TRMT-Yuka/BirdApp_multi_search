@@ -4,10 +4,9 @@ import difflib
 import librosa
 from collections import defaultdict
 from pykakasi import kakasi
-import openai
 from dotenv import load_dotenv
 
-# import jinja2
+import openai
 
 from fastapi import FastAPI,Request
 from fastapi.staticfiles import StaticFiles
@@ -21,7 +20,8 @@ import csv
 import os
 
 import torch
-from transformers import Wav2Vec2ForPreTraining,Wav2Vec2Processor,BertModel,BertJapaneseTokenizer,BertTokenizer
+from transformers import Wav2Vec2ForPreTraining,Wav2Vec2Processor
+# from transformers import BertModel,BertJapaneseTokenizer,BertTokenizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # =============アプリケーション
@@ -146,7 +146,8 @@ def raito(query,word):
 def small_d(d):
     print(d)
     if d != None:
-        small_d = {"en_name":d["en_name"],
+        small_d = {"id":d["id"],
+                    "en_name":d["en_name"],
                     "ja_name":d["ja_name"],
                     "en_aliases":d["en_aliases"],
                     "ja_aliases":d["ja_aliases"],
@@ -212,7 +213,27 @@ def ask_gpt3(question, max_tokens=2600):
     )
     return response.choices[0].text.strip()
 
-# =============# 結果表示用Webサイト練習用
+# =============# 辞書→WebサイトHTML生成関数
+def self_aliases_str(d_aliases):
+    if d_aliases == "{}":
+        return ""
+    else:
+        aliases = ""
+        for k,v in d_aliases.items():
+            en_aliases = en_aliases +"/"
+        return "("+en_aliases[:-1]+")"
+
+def self_imgs_list(d_img_urls):
+    img_urls = []
+    if d_img_urls == "{}":
+        pass
+    else:
+        d_img_urls = json.loads(d_img_urls.replace("'",'"'))
+        for k,v in d_img_urls.items():
+            img_urls.append(v)
+    return img_urls
+
+
 
 
 # =============# 自然言語クエリに最も近いnameを検索,対応するノードのidを取得=>自身，親，子を辞書で返す
@@ -371,12 +392,10 @@ def ask_gpt3(question, max_tokens=2600):
 #     else:
 #         return None
 
-@app.get("/",response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse)
 async def read_root(request:Request):
     dammy_data = "No data"
-    return templates.TemplateResponse("testpage.html", {"request": request, "dammy_data": dammy_data}) 
-
-
+    return templates.TemplateResponse("testpage.html", {"request": request, "dammy_data": dammy_data})
 
 # @app.get("/search/",)# 部分一致検索
 
@@ -430,10 +449,20 @@ async def search_adjacent_nodes(request:Request):
         gpt_ans_children = "ツル属（Grus）は、カンムリヅル属（Balearica）に分類される鳥類の総称です。ツル属は、ツル、カンムリヅル、レウコジェラヌス（Leucogeranus）、ゲラノプシス（Geranopsis）、アンスロポイデス（Anthropoides）、イオバレリカ（Eobalearica）、ブゲラヌス（Bugeranus）、カンムリヅル亜科（Balearicinae）、グリ亜科（Gruinae）などの亜科があります。 ツル属の鳥は、体長60cm前後の遠くの草原を尋ね回る大型の鳥です。また、その鳥は、褐色の上背部と、胸部には白い斑点が見られます。ツル属の鳥は、その力強い鳴き声でも知られており、多くの生息地を持つため、地域によって分布が異なります。特に、アジア、アフリカ、ヨーロッパなど、多くの国で見られます。ツル属の鳥は、家畜の餌や農作物などを食べて生活し、繁殖期間中には、川や沼津などの水場を訪れ、水辺の地形を利用して繁殖します。"
 
         dammy_data = query
-        print(dammy_data)
+        print('ans_json["myself"]:',ans_json["myself"])
         # return templates.TemplateResponse("testpage.html", {"request": request, "dammy_data": dammy_data}) 
         return templates.TemplateResponse("testpage.html", 
             {"request": request,
+
+            "self_taxon_name":ans_json["myself"]["taxon_name"],
+            "self_ja_name":ans_json["myself"]["ja_name"],
+            "self_ja_aliases":self_aliases_str(ans_json["myself"]["ja_aliases"]),
+            "self_en_name":ans_json["myself"]["en_name"],
+            "self_en_aliases":self_aliases_str(ans_json["myself"]["en_aliases"]),
+            "self_link":"https://www.wikidata.org/wiki/"+ans_json["myself"]["id"],
+            "self_imgs_list":self_imgs_list(ans_json["myself"]["img_urls"]),
+
+
             "gpt_ans_self": gpt_ans_self,
             "gpt_ans_parent": gpt_ans_parent,
             "gpt_ans_children": gpt_ans_children}

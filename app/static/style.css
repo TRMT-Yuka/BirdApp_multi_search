@@ -1,17 +1,16 @@
-/* ページ全体に対するスタイリング */
 body {
-  font-family: Arial, sans-serif;
   background-color: #f0f0f0;
+  border: none;
+/*  font-size: 10pt;*/
   color: #333;
   margin: 0;
   padding: 0;
-  margin-top: 40px; /* 上部のマージンを20pxに設定 */
-  margin-bottom: 40px; /* 下部のマージンを30pxに設定 */
-  margin-left: 70px; /* 左側のマージンを10pxに設定 */
-  margin-right: 70px; /* 右側のマージンを15pxに設定 */
+  margin-top: 40px; 
+  margin-bottom: 40px; 
+  margin-left: 70px; 
+  margin-right: 70px; 
 }
 
-/* ヘッダーのスタイリング */
 header {
   background-color: #333;
   color: #fff;
@@ -19,7 +18,6 @@ header {
   text-align: center;
 }
 
-/* メインコンテンツエリアのスタイリング */
 main {
   max-width: 800px;
   margin: 2rem auto;
@@ -34,22 +32,19 @@ button {
   background-color: #333;
   color: #fff;
   border: none;
-/*  padding: 0.5rem 1rem;*/
-/*  border-radius: 4px;*/
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .long-input {
-  width: 243px; /* 幅を100%に設定して、親要素に合わせる */
-  padding: 0.2rem; /* 上下左右の余白を追加 */
+  width: 243px; 
+  padding: 0.2rem; 
 }
 
 button:hover {
   background-color: #555;
 }
 
-/* フッターのスタイリング */
 footer {
   background-color: #333;
   color: #fff;
@@ -57,9 +52,14 @@ footer {
   padding: 1rem;
 }
 
+p{
+  font-size: 1pt;
+}
+
 /* レスポンシブデザイン */
 @media (max-width: 600px) {
   main {
+/*    font-size: 10pt;*/
     margin: 1rem;
     padding: 0.5rem;
   }
