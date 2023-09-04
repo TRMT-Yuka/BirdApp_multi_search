@@ -52,9 +52,30 @@ footer {
   padding: 1rem;
 }
 
-p{
-  font-size: 1pt;
+blockquote {
+  margin-top: -20px; 
+  margin-bottom: 40px; 
+  margin-left: 0px; 
+  margin-right: 0px; 
+
+  padding-top: 1px; 
+  padding-bottom: 40px; 
+  padding-left: 10px; 
+  padding-right: 10px; 
+/*  padding: 0.5rem;*/
+
 }
+
+p {
+  font-size: 10pt;
+}
+
+
+.smallArea {
+  /* 基本的なサイズの設定 */
+  background-color: #d1e8ff;
+}
+
 
 /* レスポンシブデザイン */
 @media (max-width: 600px) {

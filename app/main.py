@@ -144,7 +144,6 @@ def raito(query,word):
 # ============= id=>必要な項目のみを含む自身，親，子の辞書を返す関数
 
 def small_d(d):
-    print(d)
     if d != None:
         small_d = {"id":d["id"],
                     "en_name":d["en_name"],
@@ -152,7 +151,9 @@ def small_d(d):
                     "en_aliases":d["en_aliases"],
                     "ja_aliases":d["ja_aliases"],
                     "img_urls":d["img_urls"],
-                    "taxon_name":d["taxon_name"]
+                    "taxon_name":d["taxon_name"],
+                    "BR_id":d["BirdResearchDB_label01_32k_audio_id"],
+                    "JP_id":d["BirdJPBookDB__data_audio_id"]
                     }
     else:
         small_d == None
@@ -233,8 +234,27 @@ def self_imgs_list(d_img_urls):
             img_urls.append(v)
     return img_urls
 
+def self_d4html(myself_d):
+    new_d ={"self_taxon_name":myself_d["taxon_name"],
+    "self_ja_name":myself_d["ja_name"],
+    "self_ja_aliases":self_aliases_str(myself_d["ja_aliases"]),
+    "self_en_name":myself_d["en_name"],
+    "self_en_aliases":self_aliases_str(myself_d["en_aliases"]),
+    "self_link":"https://www.wikidata.org/wiki/"+myself_d["id"],
+    "self_imgs_list":self_imgs_list(myself_d["img_urls"])
+    }
+    return new_d
 
-
+def parent_d4html(parent_d):
+    new_d ={"parent_taxon_name":parent_d["taxon_name"],
+    "parent_ja_name":parent_d["ja_name"],
+    "parent_ja_aliases":self_aliases_str(parent_d["ja_aliases"]),
+    "parent_en_name":parent_d["en_name"],
+    "parent_en_aliases":self_aliases_str(parent_d["en_aliases"]),
+    "parent_link":"https://www.wikidata.org/wiki/"+parent_d["id"],
+    "parent_imgs_list":self_imgs_list(parent_d["img_urls"])
+    }
+    return new_d
 
 # =============# 自然言語クエリに最も近いnameを検索,対応するノードのidを取得=>自身，親，子を辞書で返す
 
@@ -394,10 +414,8 @@ def self_imgs_list(d_img_urls):
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request:Request):
-    dammy_data = "No data"
-    return templates.TemplateResponse("testpage.html", {"request": request, "dammy_data": dammy_data})
+    return templates.TemplateResponse("testpage.html", {"request": request})
 
-# @app.get("/search/",)# 部分一致検索
 
 @app.post("/", response_class=HTMLResponse)
 async def search_adjacent_nodes(request:Request):
@@ -407,17 +425,13 @@ async def search_adjacent_nodes(request:Request):
 
     # query="鶴"
     query = to_katakana(query)
-    # Wikidata内で最大の類似度格納変数
-    max_in_wikidata = 0.0
-    # Wikidata内で最大の類似度のID格納変数
-    max_id_in_wikidata = None
+    max_in_wikidata = 0.0     # Wikidata内で最大の類似度格納変数
+    max_id_in_wikidata = None # Wikidata内で最大の類似度のID格納変数
 
     # id_cos_d
-    print(1)
     for node_id,node in nodes.items():
         #英語名,日本語名,英語名・日本語名のエイリアスとの類似のクエリとの類似
-        # r_in_node: rait in node,該当ノードに含まれる関連語全般とクエリの類似度を格納
-        r_in_node = set()
+        r_in_node = set()#rait in node,該当ノードに含まれる関連語全般とクエリの類似度を格納
 
         r_in_node.add(raito(query,node["en_name"]))
         r_in_node.add(raito(query,node["ja_name"]))
@@ -434,10 +448,9 @@ async def search_adjacent_nodes(request:Request):
             if max(r_in_node) > max_in_wikidata:
                 max_in_wikidata = max(r_in_node)
                 max_id_in_wikidata = node_id
-    print(2)
+
     if max_id_in_wikidata!=None:
         ans_json = id2ans(max_id_in_wikidata)
-        # print(ans_json)
 
         # gpt_ans_self = ask_gpt3(ans_json["myself"])
         # gpt_ans_parent = ask_gpt3(ans_json["my_parent"])
@@ -447,38 +460,32 @@ async def search_adjacent_nodes(request:Request):
         gpt_ans_self = "ツルは、鳥類の中でも特に大きい鳥であり、ツル科（Gruidae）に属する鳥です。英語名は「Crane」となっており、体長は1.5-1.8メートル、体重は4-6キログラムとなっています。頭部の色は褐色から黒色まで変化し、胸部から尾部にかけて白色の模様が見られます。翼は非常に大きく、飛行時には振り子のような動きをします。ツルは、草原や湿地などに生息する大型の鳥であり、ミヤマツルやオオツルなどが有名です。宿泊地は冬期に南へ移動し、豊かな水源や草原を求めて主にインドや中国などの亜熱帯地域を中心に広く移動します。ツルは餌を釣り上げる行動をとり、草原の他にも沼沢地などの水辺にも行きます。ツルは繁殖期には集団で繁殖し、巣を枝、葉、茎などで作ります。ツルは、家禽類として古来から飼育され、食用、羽毛、肉などの用途に使われてきました。また、風俗習慣や文化表現などにも使用されてきました。"
         gpt_ans_parent = "ツル目とは、鳥類の一綱であるグルイフォーム（Gruiformes）に属します。グルイフォームとは、主として水辺に住む、鷺科（草原鶴）、カモ科（カモ）、コウノトリ科（コウノトリ）などの林鳥の他、カナリア科（カナリア）、サギ科（サギ）、カラス科（カラス）などの鳥類を含む綱です。グルイフォームには、大きさが大きいものから小さいものまで様々な種類の鳥がいますが、一般的には、大きな翼を持つ、とても美しい鳥として知られています。グルイフォームの鳥の標準的な外見は、長い頭、短い頭部、長い首、茶色の全身、細長い尾などが特徴的です。また、特徴的な形をしていることから、グルイフォームの鳥は、大規模な湖沼などで見かけられることが多いです。"
         gpt_ans_children = "ツル属（Grus）は、カンムリヅル属（Balearica）に分類される鳥類の総称です。ツル属は、ツル、カンムリヅル、レウコジェラヌス（Leucogeranus）、ゲラノプシス（Geranopsis）、アンスロポイデス（Anthropoides）、イオバレリカ（Eobalearica）、ブゲラヌス（Bugeranus）、カンムリヅル亜科（Balearicinae）、グリ亜科（Gruinae）などの亜科があります。 ツル属の鳥は、体長60cm前後の遠くの草原を尋ね回る大型の鳥です。また、その鳥は、褐色の上背部と、胸部には白い斑点が見られます。ツル属の鳥は、その力強い鳴き声でも知られており、多くの生息地を持つため、地域によって分布が異なります。特に、アジア、アフリカ、ヨーロッパなど、多くの国で見られます。ツル属の鳥は、家畜の餌や農作物などを食べて生活し、繁殖期間中には、川や沼津などの水場を訪れ、水辺の地形を利用して繁殖します。"
+        # 真のコード
+        # gpt_ans_self = ask_gpt3(ans_json["myself"])
+        # gpt_ans_parent = ask_gpt3(ans_json["my_parent"])
+        # gpt_ans_children = ask_gpt3(ans_json["my_children"])
 
-        dammy_data = query
-        print('ans_json["myself"]:',ans_json["myself"])
-        # return templates.TemplateResponse("testpage.html", {"request": request, "dammy_data": dammy_data}) 
         return templates.TemplateResponse("testpage.html", 
-            {"request": request,
-
-            "self_taxon_name":ans_json["myself"]["taxon_name"],
-            "self_ja_name":ans_json["myself"]["ja_name"],
-            "self_ja_aliases":self_aliases_str(ans_json["myself"]["ja_aliases"]),
-            "self_en_name":ans_json["myself"]["en_name"],
-            "self_en_aliases":self_aliases_str(ans_json["myself"]["en_aliases"]),
-            "self_link":"https://www.wikidata.org/wiki/"+ans_json["myself"]["id"],
-            "self_imgs_list":self_imgs_list(ans_json["myself"]["img_urls"]),
-
-
+            {**{"request": request,
             "gpt_ans_self": gpt_ans_self,
             "gpt_ans_parent": gpt_ans_parent,
-            "gpt_ans_children": gpt_ans_children}
-            ) 
-
-
-
+            "gpt_ans_children": gpt_ans_children},
+            **self_d4html(ans_json["myself"]),
+            **parent_d4html(ans_json["my_parent"])
+            }) 
     else:
         return None
 
 
 # =============音声 => 再類似ノード(記事の欠陥により複数あり)・その親と子を含む辞書をリストに格納し返す関数
-@app.post("/sound/")
+@app.post("/", response_class=HTMLResponse)
 async def create_upload_file(file: UploadFile = File(...)):
     # アップロードされた音声ファイルを保存
+    # ファイルを受け取る処理
+    form_data = await file.read()
+
     file_path = f"uploaded/{file.filename}"
+
     with open(file_path, "wb") as f:
         f.write(await file.read())
 
@@ -500,46 +507,62 @@ async def create_upload_file(file: UploadFile = File(...)):
         #     max_in_sounddata = d
 
     id_cos_sorted = sorted(id_cos_d.items(), key=lambda x:x[1],reverse=True)
-    print(id_cos_sorted)
-    print(id_cos_sorted[0:3])
+    # ans_list = []
+    # for id_cos_tup in id_cos_sorted[0:3]:
+    #     ans_list.append(id2ans(id_cos_tup[0]))
+    # print(ans_list)
+    # return ans_list
+    try:
+        ans_json = id2ans(id_cos_sorted[0])
 
-    ans_list = []
-    for id_cos_tup in id_cos_sorted[0:3]:
-        ans_list.append(id2ans(id_cos_tup[0]))
-    print(ans_list)
-    return ans_list
+        # gpt_ans_self = ask_gpt3(ans_json["myself"])
+        # gpt_ans_parent = ask_gpt3(ans_json["my_parent"])
+        # gpt_ans_children = ask_gpt3(ans_json["my_children"])
 
+        #一旦
+        gpt_ans_self = "test"
+        gpt_ans_parent = "testtest"
+        gpt_ans_children = "testtesttesttest"
 
+        return templates.TemplateResponse("testpage.html", 
+            {**{"request": request,
+            "gpt_ans_self": gpt_ans_self,
+            "gpt_ans_parent": gpt_ans_parent,
+            "gpt_ans_children": gpt_ans_children},
+            **self_d4html(ans_json["myself"]),
+            **parent_d4html(ans_json["my_parent"])
+            })
+    except:
+        return None
 
+# 保存用
+# @app.post("/sound/")
+# async def create_upload_file(file: UploadFile = File(...)):
+#     # アップロードされた音声ファイルを保存
+#     file_path = f"uploaded/{file.filename}"
+#     with open(file_path, "wb") as f:
+#         f.write(await file.read())
 
+#     sound_data,_ = librosa.load(file_path, sr=16000)
+#     result = w2v2(torch.tensor([sound_data]))
+#     hidden_vecs = result.projected_states
+#     input_vecs = np.mean(hidden_vecs[0].cpu().detach().numpy(), axis=0)
 
-# from fastapi.responses import HTMLResponse
+#     max_cos_sim = 0.0
+#     max_in_sounddata = None
 
-# @app.get("/testpage", response_class=HTMLResponse)
-# async def get_html():
-#     html_content = """
-#     <!DOCTYPE html>
-#     <html>
-#     <head>
-#         <title>FastAPI HTML</title>
-#     </head>
-#     """
+#     id_cos_d = dict()
 
-#     """
-#     <body>
-#         <h1>Hello, FastAPI HTML!</h1>
-#         <p>This is an example of returning HTML content from FastAPI.</p>
-#     </body>
-#     </html>
-#     """
-#     return HTMLResponse(content=html_content)
+#     for d in sound_vecs:
+#         cos = cos_sim(input_vecs,d["vector"])
+#         id_cos_d[d["id"][0]]=cos
+#         # if cos > max_cos_sim:
+#         #     max_cos_sim = cos
+#         #     max_in_sounddata = d
 
-
-
-
-# app = FastAPI()
-
-
-# @app.get("/testpage", response_class=HTMLResponse)
-# async def get_testpage(request:Request, name: str = "User"):
-#     return templates.TemplateResponse("testpage.html", {"request": request, "name": name})
+    # id_cos_sorted = sorted(id_cos_d.items(), key=lambda x:x[1],reverse=True)
+    # ans_list = []
+    # for id_cos_tup in id_cos_sorted[0:3]:
+    #     ans_list.append(id2ans(id_cos_tup[0]))
+    # print(ans_list)
+    # return ans_list
