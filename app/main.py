@@ -18,6 +18,7 @@ import json
 import pickle
 import csv
 import os
+import ast
 
 import torch
 from transformers import Wav2Vec2ForPreTraining,Wav2Vec2Processor
@@ -219,10 +220,17 @@ def self_aliases_str(d_aliases):
     if d_aliases == "{}":
         return ""
     else:
+        # print("d_aliases:",d_aliases)
+        d_aliases = ast.literal_eval(d_aliases)
         aliases = ""
         for k,v in d_aliases.items():
-            en_aliases = en_aliases +"/"
-        return "("+en_aliases[:-1]+")"
+            aliases = aliases+v+"/"
+
+        aliases = aliases[:-1]
+        if aliases != "":
+            aliases = "("+aliases+")"
+            
+        return aliases
 
 def self_imgs_list(d_img_urls):
     img_urls = []
@@ -412,12 +420,11 @@ def parent_d4html(parent_d):
 #     else:
 #         return None
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/word_search", response_class=HTMLResponse)
 async def read_root(request:Request):
-    return templates.TemplateResponse("testpage.html", {"request": request})
+    return templates.TemplateResponse("word_search.html", {"request": request})
 
-
-@app.post("/", response_class=HTMLResponse)
+@app.post("/word_search", response_class=HTMLResponse)
 async def search_adjacent_nodes(request:Request):
 
     form_data = await request.form()
@@ -465,7 +472,7 @@ async def search_adjacent_nodes(request:Request):
         # gpt_ans_parent = ask_gpt3(ans_json["my_parent"])
         # gpt_ans_children = ask_gpt3(ans_json["my_children"])
 
-        return templates.TemplateResponse("testpage.html", 
+        return templates.TemplateResponse("word_search.html", 
             {**{"request": request,
             "gpt_ans_self": gpt_ans_self,
             "gpt_ans_parent": gpt_ans_parent,
@@ -478,7 +485,11 @@ async def search_adjacent_nodes(request:Request):
 
 
 # =============音声 => 再類似ノード(記事の欠陥により複数あり)・その親と子を含む辞書をリストに格納し返す関数
-@app.post("/", response_class=HTMLResponse)
+@app.get("/sound_search", response_class=HTMLResponse)
+async def read_root(request:Request):
+    return templates.TemplateResponse("sound_search.html", {"request": request})
+
+@app.post("/sound_search", response_class=HTMLResponse)
 async def create_upload_file(file: UploadFile = File(...)):
     # アップロードされた音声ファイルを保存
     # ファイルを受け取る処理
@@ -524,7 +535,7 @@ async def create_upload_file(file: UploadFile = File(...)):
         gpt_ans_parent = "testtest"
         gpt_ans_children = "testtesttesttest"
 
-        return templates.TemplateResponse("testpage.html", 
+        return templates.TemplateResponse("sound_search.html", 
             {**{"request": request,
             "gpt_ans_self": gpt_ans_self,
             "gpt_ans_parent": gpt_ans_parent,
