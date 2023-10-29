@@ -22,7 +22,7 @@
             <label>単語検索       </label>
             <input class=long-input type="text" name="query" placeholder="Input bird name">
             <!-- <button type="submit">検索</button> -->
-            <button type="button" id="submit-button">入力</button>
+            <button type="button" id="submit-button">検索</button>
         </div>
     </form>
 
@@ -70,7 +70,7 @@
     </blockquote>
 
 
-    <script>
+<!--     <script>
         // Submitボタンがクリックされたときの処理
         document.getElementById("submit-button").addEventListener("click", function () {
             const apiKey = document.getElementById("api_key").value;
@@ -78,6 +78,6 @@
             form.action = `/word_search/?api_key=${apiKey}`;
             form.submit();
         });
-    </script>
+    </script> -->
 </body>
 </html>

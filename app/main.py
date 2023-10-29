@@ -210,28 +210,6 @@ async def some_middleware(request: Request, call_next):
         response.set_cookie(key='session', value=request.cookies.get('session'), httponly=True)
     return response
 
-# @app.post("/form_a")
-# async def process_form_a(request: Request, input_a: str = Form(...)):
-#     # フォームAの処理
-#     # セッションにフォームAの値を保存
-#     request.session["input_a"] = input_a
-#     return {"message": "Form A submitted"}
-
-# @app.post("/form_b")
-# async def process_form_b(request: Request, input_b: str = Form(...)):
-#     # フォームBの処理
-#     # セッションからフォームAの値を取得
-#     input_a = request.session.get("input_a", "")
-#     return {"message": "Form B submitted", "input_a": input_a, "input_b": input_b}
-
-# @app.get("/forms")
-# async def show_forms(request: Request):
-#     # セッションからフォームAの値を取得
-#     input_a = request.session.get("input_a", "")
-#     # テンプレートを表示するエンドポイント
-#     return templates.TemplateResponse("forms.html", {"request": request, "input_a": input_a, "input_b": ""})
-
-
 # ============= ChatGPT応答用関数
 # OpenAI APIキーを初期化
 load_dotenv()
@@ -538,27 +516,20 @@ async def search_adjacent_nodes(request:Request, api_key: str = Form(...)):
     else:
         return None
 
-# 比較用終わったら消す
-# @app.get("/word_search", response_class=HTMLResponse)
-# async def read_root(request:Request):
-#     return templates.TemplateResponse("word_search.html", {"request": request})
-
-# @app.post("/word_search", response_class=HTMLResponse)
-# async def search_adjacent_nodes(request:Request):
-
-#     form_data = await request.form()
-#     query = form_data["query"]
-
 
 # =============音声 => 再類似ノード(記事の欠陥により複数あり)・その親と子を含む辞書をリストに格納し返す関数
 @app.get("/sound_search", response_class=HTMLResponse)
-async def read_root(request:Request):
-    return templates.TemplateResponse("sound_search.html", {"request": request})
+async def read_root(request:Request, api_key:str=""):
+    api_key = request.session.get("api_key", "default_api_key")
+    return templates.TemplateResponse("sound_search.html", {"request": request,"api_key":api_key})
 
+# @app.get("/sound_search", response_class=HTMLResponse)
+# async def read_root(request:Request):
+#     return templates.TemplateResponse("sound_search.html", {"request": request})
 
 @app.post("/sound_search",response_class=HTMLResponse)
-# @app.post("/sound_search", response_class=HTMLResponse)旧
-async def sound_search(file: UploadFile,request:Request):
+async def sound_search(request: Request, api_key: str = Form(...), file: UploadFile = File(...)):
+# async def sound_search(request: Request,file: UploadFile = File(...)):
 
     uploaded_dir = "uploaded"
     shutil.rmtree(uploaded_dir)
@@ -586,7 +557,6 @@ async def sound_search(file: UploadFile,request:Request):
         #     max_in_sounddata = d
 
     id_cos_sorted = sorted(id_cos_d.items(), key=lambda x:x[1],reverse=True)
-    print(id_cos_sorted[0:3])
     # ans_list = []
     # for id_cos_tup in id_cos_sorted[0:3]:
     #     ans_list.append(id2ans(id_cos_tup[0]))
@@ -634,7 +604,8 @@ async def sound_search(file: UploadFile,request:Request):
 
         return templates.TemplateResponse("sound_search.html", 
             {**{"request": request,
-            "max_cos_in_wikidata_1":round(id_cos_sorted[0][1],4),
+            "api_key":api_key,
+            "max_cos_in_wikidata_1":round(id_cos_sorted[0][1],4),#類似度
             "max_cos_in_wikidata_2":round(id_cos_sorted[1][1],4),
             "max_cos_in_wikidata_3":round(id_cos_sorted[2][1],4),
             "gpt_ans_self_1": gpt_ans_self_1,
