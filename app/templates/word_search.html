@@ -6,11 +6,23 @@
 </head>
 <body>
     <a href="/sound_search">音声検索へ</a>
-    <form action="/word_search" method="post">
+    <form id="api_key_form" action="/word_search" method="post">
         <div>
-            <label>単語検索： </label>
+            <label for="api_key">ChatGPT API Key&nbsp;</label><!-- 追加 -->
+            <input type="text" id="api_key" name="api_key" value="{{ api_key }}" required><!-- 追加 -->
+            <!-- <button type="button" id="submit-button">入力</button> -->
+        <!-- </div> -->
+    <!-- </form> -->
+
+    <br>
+
+    <!-- <a href="/sound_search">音声検索へ</a> -->
+    <!-- <form action="/word_search" method="post"> -->
+        <!-- <div> -->
+            <label>単語検索       </label>
             <input class=long-input type="text" name="query" placeholder="Input bird name">
-            <button type="submit">検索</button>
+            <!-- <button type="submit">検索</button> -->
+            <button type="button" id="submit-button">入力</button>
         </div>
     </form>
 
@@ -56,5 +68,16 @@
         <h4>解説:</h4>
         <p>{{ gpt_ans_children }}</p>
     </blockquote>
+
+
+    <script>
+        // Submitボタンがクリックされたときの処理
+        document.getElementById("submit-button").addEventListener("click", function () {
+            const apiKey = document.getElementById("api_key").value;
+            const form = document.getElementById("api_key_form");
+            form.action = `/word_search/?api_key=${apiKey}`;
+            form.submit();
+        });
+    </script>
 </body>
 </html>

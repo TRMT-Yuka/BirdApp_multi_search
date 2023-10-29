@@ -5,12 +5,42 @@
     <link rel="stylesheet" type="text/css" href="/static/style.css">
 </head>
 <body>
-    <a href="/word_search">単語検索へ</a>
+<!--     <form action="/sound_search" method="post">
+        <div>
+            <label for="api_key">ChatGPT API Key:</label>
+            <input type="text" id="api_key" name="api_key" value="{{ api_key }}" required>
+            <button type="submit">入力</button>
+        </div>
+    </form> -->
+
+    <br>
+
+<!--     <a href="/word_search">単語検索へ</a>
     <form action="/sound_search" method="post" enctype="multipart/form-data">
         <div>
             <label>音声検索：</label>
             <input type="file" name="file" placeholder="Input bird song file">
             <button type="submit">検索</button>
+        </div>
+    </form> -->
+
+    <a href="/sound_search">単語検索へ</a>
+    <form id="api_key_form" action="/word_search" method="post">
+        <div>
+            <label for="api_key">ChatGPT API Key&nbsp;</label><!-- 追加 -->
+            <input type="text" id="api_key" name="api_key" value="{{ api_key }}" required><!-- 追加 -->
+            <!-- <button type="button" id="submit-button">入力</button> -->
+        <!-- </div> -->
+    <!-- </form> -->
+
+    <br>
+
+    <!-- <a href="/sound_search">音声検索へ</a> -->
+    <!-- <form action="/word_search" method="post"> -->
+        <!-- <div> -->
+            <label>音声検索</label>
+            <input type="file" name="file" placeholder="Input bird song file">
+            <button type="button" id="submit-button">検索</button>
         </div>
     </form>
 

@@ -1,4 +1,4 @@
-from fastapi import FastAPI,UploadFile,File
+from fastapi import FastAPI,UploadFile,File,Form
 from typing import List,Dict
 import difflib
 import librosa
@@ -12,6 +12,10 @@ from fastapi import FastAPI,Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse,JSONResponse
+
+#鍵関連
+from fastapi import Depends, HTTPException
+from starlette.middleware.sessions import SessionMiddleware
 
 import numpy as np
 import json
@@ -30,6 +34,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+
+app.add_middleware(SessionMiddleware, secret_key="your_secret_key")
 
 # =============知識グラフ
 nodes=dict()
@@ -193,6 +199,37 @@ def to_katakana(text):
     conv = kakasi_instance.getConverter()
     katakana_text = conv.do(text)
     return katakana_text
+
+
+# =============OpenAI APIキー手動入力画面設定
+@app.middleware("http")
+async def some_middleware(request: Request, call_next):
+    response = await call_next(request)
+    session = request.cookies.get('session')
+    if session:
+        response.set_cookie(key='session', value=request.cookies.get('session'), httponly=True)
+    return response
+
+# @app.post("/form_a")
+# async def process_form_a(request: Request, input_a: str = Form(...)):
+#     # フォームAの処理
+#     # セッションにフォームAの値を保存
+#     request.session["input_a"] = input_a
+#     return {"message": "Form A submitted"}
+
+# @app.post("/form_b")
+# async def process_form_b(request: Request, input_b: str = Form(...)):
+#     # フォームBの処理
+#     # セッションからフォームAの値を取得
+#     input_a = request.session.get("input_a", "")
+#     return {"message": "Form B submitted", "input_a": input_a, "input_b": input_b}
+
+# @app.get("/forms")
+# async def show_forms(request: Request):
+#     # セッションからフォームAの値を取得
+#     input_a = request.session.get("input_a", "")
+#     # テンプレートを表示するエンドポイント
+#     return templates.TemplateResponse("forms.html", {"request": request, "input_a": input_a, "input_b": ""})
 
 
 # ============= ChatGPT応答用関数
@@ -436,11 +473,14 @@ def parent_d4html(parent_d,n):#word検索ではnは無し，sound検索では_1,
 #         return None
 
 @app.get("/word_search", response_class=HTMLResponse)
-async def read_root(request:Request):
-    return templates.TemplateResponse("word_search.html", {"request": request})
+async def read_root(request:Request, api_key:str=""):
+    # request.session["api_key"] = api_key
+    api_key = request.session.get("api_key", "default_api_key")
+    return templates.TemplateResponse("word_search.html", {"request": request,"api_key":api_key})
 
 @app.post("/word_search", response_class=HTMLResponse)
-async def search_adjacent_nodes(request:Request):
+async def search_adjacent_nodes(request:Request, api_key: str = Form(...)):
+    request.session["api_key"] = api_key
 
     form_data = await request.form()
     query = form_data["query"]
@@ -484,14 +524,16 @@ async def search_adjacent_nodes(request:Request):
         # gpt_ans_children = ask_gpt3(ans_json["my_children"])
         print(max_cos_in_wikidata)
 
+
         return templates.TemplateResponse("word_search.html", 
             {**{"request": request,
+            "api_key":api_key,
             "max_cos_in_wikidata":round(max_cos_in_wikidata,4),
             "gpt_ans_self": gpt_ans_self,
             "gpt_ans_parent": gpt_ans_parent,
             "gpt_ans_children": gpt_ans_children},
-            **self_d4html(ans_json["myself"],""),
-            **parent_d4html(ans_json["my_parent"],"")
+            **d4html(ans_json["myself"],"self",""),
+            **d4html(ans_json["my_parent"],"parent","")
             }) 
     else:
         return None
