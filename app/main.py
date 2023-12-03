@@ -31,27 +31,6 @@ from transformers import BertModel,BertJapaneseTokenizer,BertTokenizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-def display_directory_tree(directory, indent=""):
-    print(f"{indent}[{os.path.basename(directory)}]")
-    
-    # ディレクトリ内のファイルとサブディレクトリをリストアップ
-    entries = os.listdir(directory)
-    
-    for entry in entries:
-        full_path = os.path.join(directory, entry)
-        
-        if os.path.isdir(full_path):
-            # サブディレクトリの場合、再帰的にツリーを表示
-            display_directory_tree(full_path, indent + "  ")
-        else:
-            # ファイルの場合、ファイル名を表示
-            print(f"{indent}  {entry}")
-
-# 現在のディレクトリを取得，ツリーを表示
-current_directory = os.getcwd()
-display_directory_tree(current_directory)
-
-
 # =============アプリケーション
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -59,34 +38,34 @@ templates = Jinja2Templates(directory="templates")
 
 app.add_middleware(SessionMiddleware, secret_key="your_secret_key")
 
-# =============知識グラフ
-nodes=dict()
-p2c=defaultdict(list)
-with open('data/all_BirdDBnode.tsv', mode='r', newline='', encoding='utf-8') as f:
-    for row in csv.DictReader(f, delimiter = '\t'):
-        nodes[row["id"]] = row
-        p2c[row["parent_taxon"]].append(row["id"])
-print("knowledge data loading is complete !")
+# # =============知識グラフ
+# nodes=dict()
+# p2c=defaultdict(list)
+# with open('data/all_BirdDBnode.tsv', mode='r', newline='', encoding='utf-8') as f:
+#     for row in csv.DictReader(f, delimiter = '\t'):
+#         nodes[row["id"]] = row
+#         p2c[row["parent_taxon"]].append(row["id"])
+# print("knowledge data loading is complete !")
 
 
-# =============音声モデル
-w2v2 = Wav2Vec2ForPreTraining.from_pretrained("model/wav2vec2-bird-jp-all")
-print("sound model loading is complete !")
+# # =============音声モデル
+# w2v2 = Wav2Vec2ForPreTraining.from_pretrained("model/wav2vec2-bird-jp-all")
+# print("sound model loading is complete !")
 
 
-# =============音声埋め込み
-with open('data/sound_vecs.json') as f:
-    sound_vecs = json.load(f)
-print("sound vec data loading is complete !")
+# # =============音声埋め込み
+# with open('data/sound_vecs.json') as f:
+#     sound_vecs = json.load(f)
+# print("sound vec data loading is complete !")
 
 
-# =============言語モデル
-# ローカルから日英BERTのモデル・トークナイザーを読み込み
-en_model = BertModel.from_pretrained('model/en_model')
-en_tokenizer = BertTokenizer.from_pretrained('model/en_tokenizer')
-ja_model = BertModel.from_pretrained('model/ja_model')
-ja_tokenizer = BertJapaneseTokenizer.from_pretrained('model/ja_tokenizer')
-print("language model loading is complete !")
+# # =============言語モデル
+# # ローカルから日英BERTのモデル・トークナイザーを読み込み
+# en_model = BertModel.from_pretrained('model/en_model')
+# en_tokenizer = BertTokenizer.from_pretrained('model/en_tokenizer')
+# ja_model = BertModel.from_pretrained('model/ja_model')
+# ja_tokenizer = BertJapaneseTokenizer.from_pretrained('model/ja_tokenizer')
+# print("language model loading is complete !")
 
 # # リモートから日英BERTのモデル・トークナイザーを読み込み
 # en_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -94,61 +73,31 @@ print("language model loading is complete !")
 # ja_tokenizer = BertJapaneseTokenizer.from_pretrained('cl-tohoku/bert-base-japanese-whole-word-masking')
 # ja_model = BertModel.from_pretrained('cl-tohoku/bert-base-japanese-whole-word-masking')
 
-# =============言語埋め込み
-with open('data/en_name_vecs.bin','rb') as bf:
-    en_name_vecs = pickle.load(bf)
-print("en_name_vecs data loading is complete !")
+# # =============言語埋め込み
+# with open('data/en_name_vecs.bin','rb') as bf:
+#     en_name_vecs = pickle.load(bf)
+# print("en_name_vecs data loading is complete !")
 
-with open('data/ja_name_vecs.bin','rb') as bf:
-    ja_name_vecs = pickle.load(bf)
-print("ja_name_vecs data loading is complete !")
+# with open('data/ja_name_vecs.bin','rb') as bf:
+#     ja_name_vecs = pickle.load(bf)
+# print("ja_name_vecs data loading is complete !")
 
-with open('data/en_aliases_vecs_all.bin','rb') as bf:
-    en_aliases_vecs = pickle.load(bf)
-print("en_aliases_vecs_all data loading is complete !")
+# with open('data/en_aliases_vecs_all.bin','rb') as bf:
+#     en_aliases_vecs = pickle.load(bf)
+# print("en_aliases_vecs_all data loading is complete !")
 
-with open('data/ja_aliases_vecs.bin','rb') as bf:
-    ja_aliases_vecs = pickle.load(bf)
-print("ja_aliases_vecs data loading is complete !")
-print("language vec data loading is complete !")
+# with open('data/ja_aliases_vecs.bin','rb') as bf:
+#     ja_aliases_vecs = pickle.load(bf)
+# print("ja_aliases_vecs data loading is complete !")
+# print("language vec data loading is complete !")
 
-# =============queryとwordを引数にとり，類似度を返す関数=>これはBERTにしなければならない
-def raito(query,word):
-    raito = difflib.SequenceMatcher(None, query, word).ratio()
-    return raito
+print("setup is complete!")
 
-# =============queryとwordを引数にとり，BERT類似度を返す関数
-# def raito_bert_en(q_vec, word, aliases):
-#     # 文をBERTの分散表現に変換する
-#     tokenizer = en_tokenizer
-#     model = en_model
-    
-#     if aliases == False:w_vec = en_name_vecs[word]# wordの分散表現
-#     else:w_vec = en_aliases_vecs[word]
-
-#     similarity = cosine_similarity(q_vec.unsqueeze(0).numpy(), w_vec.unsqueeze(0).numpy())
-#     return similarity[0][0]# Cosine類似度
-
-
-# def raito_bert_ja(q_vec, word, aliases):
-#     # 文をBERTの分散表現に変換する
-#     tokenizer = ja_tokenizer
-#     model = ja_model
-    
-#     if aliases == False:w_vec = ja_name_vecs[word]
-#     else:w_vec = ja_aliases_vecs[word]
-
-
-#     similarity = cosine_similarity(q_vec.unsqueeze(0).numpy(), w_vec.unsqueeze(0).numpy())
-#     return similarity[0][0]# Cosine類似度
-
-
-# 日英両対応
+# =============queryとwordを引数にとり，BERT類似度を返す関数 日英両対応
 def raito_b(q_vec, w_vec):
     # 文をBERTの分散表現に変換する
     similarity = cosine_similarity(q_vec.unsqueeze(0).numpy(), w_vec.unsqueeze(0).numpy())
     return similarity[0][0]# Cosine類似度
-
 
 def raito_bert(q_vec, word, en, aliases):
     # 文をBERTの分散表現に変換する
@@ -209,7 +158,6 @@ def id2ans(myself_id):
 def cos_sim(v1, v2):
     return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
 
-
 # ============= 漢字および平仮名をカタカナに修正する関数
 def to_katakana(text):
     # kakasiオブジェクトを作成
@@ -222,7 +170,6 @@ def to_katakana(text):
     katakana_text = conv.do(text)
     return katakana_text
 
-
 # =============OpenAI APIキー手動入力画面設定
 @app.middleware("http")
 async def some_middleware(request: Request, call_next):
@@ -233,11 +180,6 @@ async def some_middleware(request: Request, call_next):
     return response
 
 # ============= ChatGPT応答用関数
-
-# OpenAI APIキーを初期化(.envから読込む場合)
-# load_dotenv()
-# openai.api_key = os.getenv("API_KEY")
-# debug_mode = os.getenv("DEBUG")
 
 # ChatGPTに質問を送信する関数
 def ask_gpt3(question,api_key,max_tokens=2600):
@@ -286,6 +228,19 @@ def imgs_list(d_img_urls):
         for k,v in d_img_urls.items():
             img_urls.append(v)
     return img_urls
+
+def d4html_empty(self_or_parent,n):#word検索ではnは無し，sound検索では_1,_2,_3
+    print(self_or_parent+"_taxon_name"+n)
+    new_d ={
+    self_or_parent+"_taxon_name"+n:"",
+    self_or_parent+"_ja_name"+n:"",
+    self_or_parent+"_ja_aliases"+n:[],
+    self_or_parent+"_en_name"+n:"",
+    self_or_parent+"_en_aliases"+n:[],
+    self_or_parent+"_link"+n:"",
+    self_or_parent+"_imgs_list"+n:[]
+    }
+    return new_d
 
 def d4html(myself_d,self_or_parent,n):#word検索ではnは無し，sound検索では_1,_2,_3
     print(self_or_parent+"_taxon_name"+n)
@@ -444,15 +399,6 @@ async def read_root(request:Request, api_key:str=""):
 
 @app.post("/sound_search",response_class=HTMLResponse)
 async def sound_search(request: Request, api_key: str = Form(...), file: UploadFile = File(...)):
-# async def sound_search(request: Request,file: UploadFile = File(...)):
-
-    # uploaded_dir = "uploaded"
-    # if os.path.exists(uploaded_dir):
-    #     shutil.rmtree(uploaded_dir)
-    # os.mkdir(uploaded_dir)
-
-    # with open(uploaded_dir+"/"+file.filename, "wb") as f:
-    #     f.write(await file.read())
     
     with open("uploaded/"+file.filename, "wb") as f:
         f.write(await file.read())
@@ -528,3 +474,135 @@ async def sound_search(request: Request, api_key: str = Form(...), file: UploadF
             })
     except:
         return None
+
+
+#=================================================
+@app.get("/")
+def read_root():
+    # リダイレクト先のURLを指定してRedirectResponseを作成
+    redirect_url = "/multi_search"
+    response = RedirectResponse(url=redirect_url)
+    return response
+
+@app.get("/multi_search", response_class=HTMLResponse)
+async def read_root(request:Request, api_key:str=""):
+    api_key = request.session.get("api_key", "please_input_your_api_key")
+    return templates.TemplateResponse("multi_search.html", {"request": request,"api_key":api_key})
+
+@app.post("/multi_search",response_class=HTMLResponse)
+async def multi_search(
+    request:Request,
+    api_key: str = Form(...),
+    e_query: str = Form(None),
+    j_query: str = Form(None),
+    Wikidata_id: str = Form(None),
+    file: UploadFile = File(None)
+):
+    
+    try:
+        with open("uploaded/"+file.filename, "wb") as f:
+            f.write(await file.read())
+            sound_data,_ = librosa.load("uploaded/"+file.filename, sr=16000)
+    except:
+        sound_data=None
+
+    if e_query is None and j_query is None and Wikidata_id is None and sound_data is None:
+        return templates.TemplateResponse("multi_search.html", 
+            {**{"request": request,
+            "api_key":api_key,
+            "message":"入力値がありません",
+            "max_cos_in_wikidata_1":"",
+            "max_cos_in_wikidata_2":"",
+            "max_cos_in_wikidata_3":"",
+            "gpt_ans_self_1":"",
+            "gpt_ans_parent_1":"",
+            "gpt_ans_children_1":"",
+            "gpt_ans_self_2":"",
+            "gpt_ans_parent_2":"",
+            "gpt_ans_children_2":"",
+            "gpt_ans_self_3":"",
+            "gpt_ans_parent_3":"",
+            "gpt_ans_children_3":""},
+            **d4html_empty("self","_1"),
+            **d4html_empty("parent","_1"),
+            **d4html_empty("self","_2"),
+            **d4html_empty("parent","_2"),
+            **d4html_empty("self","_3"),
+            **d4html_empty("parent","_3")
+            })
+
+    # with open("uploaded/"+file.filename, "wb") as f:
+    #     f.write(await file.read())
+
+    # sound_data,_ = librosa.load("uploaded/"+file.filename, sr=16000)
+    # result = w2v2(torch.tensor([sound_data]))
+    # hidden_vecs = result.projected_states
+    # input_vecs = np.mean(hidden_vecs[0].cpu().detach().numpy(), axis=0)
+
+    # max_cos_sim = 0.0
+    # max_in_sounddata = None
+
+    # id_cos_d = dict()
+
+    # for d in sound_vecs:
+    #     cos = cos_sim(input_vecs,d["vector"])
+    #     id_cos_d[d["id"][0]]=cos
+
+    # id_cos_sorted = sorted(id_cos_d.items(), key=lambda x:x[1],reverse=True)
+
+    # try:
+    #     ans_json_1 = id2ans(id_cos_sorted[0][0])
+    #     ans_json_2 = id2ans(id_cos_sorted[1][0])
+    #     ans_json_3 = id2ans(id_cos_sorted[2][0])
+
+    #     #真のコード
+    #     gpt_ans_self_1 = ask_gpt3(ans_json_1["myself"],api_key)
+    #     gpt_ans_parent_1 = ask_gpt3(ans_json_1["my_parent"],api_key)
+    #     gpt_ans_children_1 = ask_gpt3(ans_json_1["my_children"],api_key)
+
+    #     gpt_ans_self_2 = ask_gpt3(ans_json_2["myself"],api_key)
+    #     gpt_ans_parent_2 = ask_gpt3(ans_json_2["my_parent"],api_key)
+    #     gpt_ans_children_2 = ask_gpt3(ans_json_2["my_children"],api_key)
+
+    #     gpt_ans_self_3 = ask_gpt3(ans_json_3["myself"],api_key)
+    #     gpt_ans_parent_3 = ask_gpt3(ans_json_3["my_parent"],api_key)
+    #     gpt_ans_children_3 = ask_gpt3(ans_json_3["my_children"],api_key)
+
+    #     #一旦
+    #     # gpt_ans_self_1 = "test"
+    #     # gpt_ans_parent_1 = "testtest"
+    #     # gpt_ans_children_1 = "testtesttest"
+
+    #     # gpt_ans_self_2 = "test"
+    #     # gpt_ans_parent_2 = "testtest"
+    #     # gpt_ans_children_2 = "testtesttest"
+
+    #     # gpt_ans_self_3 = "test"
+    #     # gpt_ans_parent_3 = "testtest"
+    #     # gpt_ans_children_3 = "testtesttest"
+
+    #     return templates.TemplateResponse("sound_search.html", 
+    #         {**{"request": request,
+    #         "api_key":api_key,
+    #         "messeage":messeage,
+    #         "max_cos_in_wikidata_1":round(id_cos_sorted[0][1],4),#類似度
+    #         "max_cos_in_wikidata_2":round(id_cos_sorted[1][1],4),
+    #         "max_cos_in_wikidata_3":round(id_cos_sorted[2][1],4),
+    #         "gpt_ans_self_1": gpt_ans_self_1,
+    #         "gpt_ans_parent_1": gpt_ans_parent_1,
+    #         "gpt_ans_children_1": gpt_ans_children_1,
+    #         "gpt_ans_self_2": gpt_ans_self_2,
+    #         "gpt_ans_parent_2": gpt_ans_parent_2,
+    #         "gpt_ans_children_2": gpt_ans_children_2,
+    #         "gpt_ans_self_3": gpt_ans_self_3,
+    #         "gpt_ans_parent_3": gpt_ans_parent_3,
+    #         "gpt_ans_children_3": gpt_ans_children_3},
+    #         **d4html(ans_json_1["myself"],"self","_1"),
+    #         **d4html(ans_json_1["my_parent"],"parent","_1"),
+    #         **d4html(ans_json_2["myself"],"self","_2"),
+    #         **d4html(ans_json_2["my_parent"],"parent","_2"),
+    #         **d4html(ans_json_3["myself"],"self","_3"),
+    #         **d4html(ans_json_3["my_parent"],"parent","_3")
+    #         })
+    # except:
+    #     return None

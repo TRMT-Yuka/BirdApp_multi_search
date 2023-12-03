@@ -5,79 +5,139 @@
     <link rel="stylesheet" type="text/css" href="/static/style.css">
 </head>
 <body>
-    <a href="/sound_search">音声検索へ</a>
-    <form id="api_key_form" action="/word_search" method="post">
+
+    <form id="multi_forms" action="/multi_search" method="post" enctype="multipart/form-data">
         <div>
-            <label for="api_key">ChatGPT API Key&nbsp;</label><!-- 追加 -->
-            <input type="text" id="api_key" name="api_key" value="{{ api_key }}" required><!-- 追加 -->
-            <!-- <button type="button" id="submit-button">入力</button> -->
-        <!-- </div> -->
-    <!-- </form> -->
+            <label for="api_key">ChatGPT API Key&nbsp;</label>
+            <input type="text" id="api_key" name="api_key" value="{{ api_key }}" required>
 
-    <br>
+            <br><br>
+            <label>英語検索　　</label>
+            <input class=long-input type="text" name="e_query" placeholder="Input bird name">
 
-    <!-- <a href="/sound_search">音声検索へ</a> -->
-    <!-- <form action="/word_search" method="post"> -->
-        <!-- <div> -->
-            <label>単語検索</label>
-            <input class=long-input type="text" name="query" placeholder="Input bird name">
-            <!-- <button type="submit">検索</button> -->
+            <br>
+            <label>日本語検索　</label>
+            <input class=long-input type="text" name="j_query" placeholder="鳥名を入力">
+
+            <br>
+            <label>Wikidata ID&nbsp;</label>
+            <input class=long-input type="text" name="Wikidata_id" placeholder="IDを入力">
+
+            <br>
+            <label>音声検索　　</label>
+            <input type="file" name="file" placeholder="Input bird song file">
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;↓
+            <br>&nbsp;
             <button type="submit" id="submit-button">検索</button>
+
         </div>
     </form>
 
-<!-- 
-"self_taxon_name"
-"self_ja_name"
-"self_ja_aliases"
-"self_en_name"
-"self_en_aliases"
-"self_link"
-"self_imgs_list"-->
     <br>
-    <!-- <h1>Welcome to the Test Page, {{ dammy_data }}!</h1> -->
+    {{ message }}
 
-    <h3>類似度:{{max_cos_in_wikidata}}</h3>
+    <h3>類似度:{{ max_cos_in_wikidata_1 }}</h3>
     <blockquote class=smallArea>
-        <h3>和名:<a href="{{ self_link }}">{{ self_ja_name }}</a> {{ self_ja_aliases }} 
-            <br>英名:<a href="{{ self_link }}">{{ self_en_name }}</a> {{ self_en_aliases }}</h3>
+        <h3>和名:<a href="{{ self_link_1 }}">{{ self_ja_name_1 }}</a> {{ self_ja_aliases_1 }} 
+            <br>英名:<a href="{{ self_link_1 }}">{{ self_en_name_1 }}</a> {{ self_en_aliases_1 }}</h3>
 
-        {% for img in self_imgs_list %}
+        {% for img in self_imgs_list_1 %}
         <iframe src="{{ img }}" width="500" height="300" frameborder="0"></iframe>
         {% endfor %}
 
         <h3>解説:</h3>
-        <p>{{ gpt_ans_self }}</p>
+        <p>{{ gpt_ans_self_1 }}</p>
 
     <hr>
 
     <h3>上位概念</h3>
-        <h4>和名:<a href="{{ parent_link }}">{{ parent_ja_name }}</a> {{ parent_ja_aliases }} 
-            <br>英名:<a href="{{ parent_link }}">{{ parent_en_name }}</a> {{ parent_en_aliases }}</h4>
+        <h4>和名:<a href="{{ parent_link_1 }}">{{ parent_ja_name_1 }}</a> {{ parent_ja_aliases_1 }} 
+            <br>英名:<a href="{{ parent_link_1 }}">{{ parent_en_name_1 }}</a> {{ parent_en_aliases_1 }}</h4>
 
-        {% for img in parent_imgs_list %}
+        {% for img in parent_imgs_list_1 %}
         <iframe src="{{ img }}" width="500" height="300" frameborder="0"></iframe>
         {% endfor %}
 
         <h4>解説:</h4>
-        <p>{{ gpt_ans_parent }}</p>
+        <p>{{ gpt_ans_parent_1 }}</p>
     
     <hr>    
 
     <h3>下位概念</h3>
         <h4>解説:</h4>
-        <p>{{ gpt_ans_children }}</p>
+        <p>{{ gpt_ans_children_1 }}</p>
     </blockquote>
 
 
-<!--     <script>
-        // Submitボタンがクリックされたときの処理
-        document.getElementById("submit-button").addEventListener("click", function () {
-            const apiKey = document.getElementById("api_key").value;
-            const form = document.getElementById("api_key_form");
-            form.action = `/word_search/?api_key=${apiKey}`;
-            form.submit();
-        });
-    </script> -->
+<!-- ================================================================================== -->
+
+
+    <h3>類似度:{{ max_cos_in_wikidata_2 }}</h3>
+    <blockquote class=smallArea>
+        <h3>和名:<a href="{{ self_link_2 }}">{{ self_ja_name_2 }}</a> {{ self_ja_aliases_2 }} 
+            <br>英名:<a href="{{ self_link_2 }}">{{ self_en_name_2 }}</a> {{ self_en_aliases_2 }}</h3>
+
+        {% for img in self_imgs_list_2 %}
+        <iframe src="{{ img }}" width="500" height="300" frameborder="0"></iframe>
+        {% endfor %}
+
+        <h3>解説:</h3>
+        <p>{{ gpt_ans_self_2 }}</p>
+
+    <hr>
+
+    <h3>上位概念</h3>
+        <h4>和名:<a href="{{ parent_link_2 }}">{{ parent_ja_name_2 }}</a> {{ parent_ja_aliases_2 }} 
+            <br>英名:<a href="{{ parent_link_2 }}">{{ parent_en_name_2 }}</a> {{ parent_en_aliases_2 }}</h4>
+
+        {% for img in parent_imgs_list_2 %}
+        <iframe src="{{ img }}" width="500" height="300" frameborder="0"></iframe>
+        {% endfor %}
+
+        <h4>解説:</h4>
+        <p>{{ gpt_ans_parent_2 }}</p>
+    
+    <hr>    
+
+    <h3>下位概念</h3>
+        <h4>解説:</h4>
+        <p>{{ gpt_ans_children_2 }}</p>
+    </blockquote>
+
+
+<!-- ================================================================================== -->
+
+
+    <h3>類似度:{{ max_cos_in_wikidata_3 }}</h3>
+    <blockquote class=smallArea>
+        <h3>和名:<a href="{{ self_link_3 }}">{{ self_ja_name_3 }}</a> {{ self_ja_aliases_3 }} 
+            <br>英名:<a href="{{ self_link_3 }}">{{ self_en_name_3 }}</a> {{ self_en_aliases_3 }}</h3>
+
+        {% for img in self_imgs_list_3 %}
+        <iframe src="{{ img }}" width="500" height="300" frameborder="0"></iframe>
+        {% endfor %}
+
+        <h3>解説:</h3>
+        <p>{{ gpt_ans_self_3 }}</p>
+
+    <hr>
+
+    <h3>上位概念</h3>
+        <h4>和名:<a href="{{ parent_link_3 }}">{{ parent_ja_name_3 }}</a> {{ parent_ja_aliases_3 }} 
+            <br>英名:<a href="{{ parent_link_3 }}">{{ parent_en_name_3 }}</a> {{ parent_en_aliases_3 }}</h4>
+
+        {% for img in parent_imgs_list_3 %}
+        <iframe src="{{ img }}" width="500" height="300" frameborder="0"></iframe>
+        {% endfor %}
+
+        <h4>解説:</h4>
+        <p>{{ gpt_ans_parent_3 }}</p>
+    
+    <hr>    
+
+    <h3>下位概念</h3>
+        <h4>解説:</h4>
+        <p>{{ gpt_ans_children_3 }}</p>
+    </blockquote>
 </body>
 </html>
