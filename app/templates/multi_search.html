@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Multimodal Bird Search</title>
+    <link rel="stylesheet" type="text/css" href="/static/style.css">
+</head>
+<body>
+    <a href="/sound_search">音声検索へ</a>
+    <form id="api_key_form" action="/word_search" method="post">
+        <div>
+            <label for="api_key">ChatGPT API Key&nbsp;</label><!-- 追加 -->
+            <input type="text" id="api_key" name="api_key" value="{{ api_key }}" required><!-- 追加 -->
+            <!-- <button type="button" id="submit-button">入力</button> -->
+        <!-- </div> -->
+    <!-- </form> -->
+
+    <br>
+
+    <!-- <a href="/sound_search">音声検索へ</a> -->
+    <!-- <form action="/word_search" method="post"> -->
+        <!-- <div> -->
+            <label>単語検索</label>
+            <input class=long-input type="text" name="query" placeholder="Input bird name">
+            <!-- <button type="submit">検索</button> -->
+            <button type="submit" id="submit-button">検索</button>
+        </div>
+    </form>
+
+<!-- 
+"self_taxon_name"
+"self_ja_name"
+"self_ja_aliases"
+"self_en_name"
+"self_en_aliases"
+"self_link"
+"self_imgs_list"-->
+    <br>
+    <!-- <h1>Welcome to the Test Page, {{ dammy_data }}!</h1> -->
+
+    <h3>類似度:{{max_cos_in_wikidata}}</h3>
+    <blockquote class=smallArea>
+        <h3>和名:<a href="{{ self_link }}">{{ self_ja_name }}</a> {{ self_ja_aliases }} 
+            <br>英名:<a href="{{ self_link }}">{{ self_en_name }}</a> {{ self_en_aliases }}</h3>
+
+        {% for img in self_imgs_list %}
+        <iframe src="{{ img }}" width="500" height="300" frameborder="0"></iframe>
+        {% endfor %}
+
+        <h3>解説:</h3>
+        <p>{{ gpt_ans_self }}</p>
+
+    <hr>
+
+    <h3>上位概念</h3>
+        <h4>和名:<a href="{{ parent_link }}">{{ parent_ja_name }}</a> {{ parent_ja_aliases }} 
+            <br>英名:<a href="{{ parent_link }}">{{ parent_en_name }}</a> {{ parent_en_aliases }}</h4>
+
+        {% for img in parent_imgs_list %}
+        <iframe src="{{ img }}" width="500" height="300" frameborder="0"></iframe>
+        {% endfor %}
+
+        <h4>解説:</h4>
+        <p>{{ gpt_ans_parent }}</p>
+    
+    <hr>    
+
+    <h3>下位概念</h3>
+        <h4>解説:</h4>
+        <p>{{ gpt_ans_children }}</p>
+    </blockquote>
+
+
+<!--     <script>
+        // Submitボタンがクリックされたときの処理
+        document.getElementById("submit-button").addEventListener("click", function () {
+            const apiKey = document.getElementById("api_key").value;
+            const form = document.getElementById("api_key_form");
+            form.action = `/word_search/?api_key=${apiKey}`;
+            form.submit();
+        });
+    </script> -->
+</body>
+</html>

@@ -11,7 +11,7 @@ import openai
 from fastapi import FastAPI,Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse,JSONResponse
+from fastapi.responses import HTMLResponse,JSONResponse,RedirectResponse
 
 #鍵関連
 from fastapi import Depends, HTTPException
@@ -29,6 +29,28 @@ import torch
 from transformers import Wav2Vec2ForPreTraining,Wav2Vec2Processor
 from transformers import BertModel,BertJapaneseTokenizer,BertTokenizer
 from sklearn.metrics.pairwise import cosine_similarity
+
+
+def display_directory_tree(directory, indent=""):
+    print(f"{indent}[{os.path.basename(directory)}]")
+    
+    # ディレクトリ内のファイルとサブディレクトリをリストアップ
+    entries = os.listdir(directory)
+    
+    for entry in entries:
+        full_path = os.path.join(directory, entry)
+        
+        if os.path.isdir(full_path):
+            # サブディレクトリの場合、再帰的にツリーを表示
+            display_directory_tree(full_path, indent + "  ")
+        else:
+            # ファイルの場合、ファイル名を表示
+            print(f"{indent}  {entry}")
+
+# 現在のディレクトリを取得，ツリーを表示
+current_directory = os.getcwd()
+display_directory_tree(current_directory)
+
 
 # =============アプリケーション
 app = FastAPI()
@@ -302,6 +324,14 @@ def parent_d4html(parent_d,n):#word検索ではnは無し，sound検索では_1,
     return new_d
 
 # =============# 自然言語クエリに最も近いnameを検索,対応するノードのidを取得=>自身，親，子を辞書で返す
+@app.get("/")
+def read_root():
+    # リダイレクト先のURLを指定してRedirectResponseを作成
+    redirect_url = "/word_search"
+    response = RedirectResponse(url=redirect_url)
+    return response
+
+    
 @app.get("/word_search", response_class=HTMLResponse)
 async def read_root(request:Request, api_key:str=""):
     api_key = request.session.get("api_key", "please_input_your_api_key")
@@ -416,11 +446,15 @@ async def read_root(request:Request, api_key:str=""):
 async def sound_search(request: Request, api_key: str = Form(...), file: UploadFile = File(...)):
 # async def sound_search(request: Request,file: UploadFile = File(...)):
 
-    uploaded_dir = "uploaded"
-    shutil.rmtree(uploaded_dir)
-    os.mkdir(uploaded_dir)
+    # uploaded_dir = "uploaded"
+    # if os.path.exists(uploaded_dir):
+    #     shutil.rmtree(uploaded_dir)
+    # os.mkdir(uploaded_dir)
 
-    with open(uploaded_dir+"/"+file.filename, "wb") as f:
+    # with open(uploaded_dir+"/"+file.filename, "wb") as f:
+    #     f.write(await file.read())
+    
+    with open("uploaded/"+file.filename, "wb") as f:
         f.write(await file.read())
 
     sound_data,_ = librosa.load("uploaded/"+file.filename, sr=16000)

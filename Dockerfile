@@ -2,17 +2,21 @@
 FROM tiangolo/uvicorn-gunicorn-fastapi:python3.9
 
 # 作業ディレクトリを設定
-WORKDIR /app
+WORKDIR /my_codes
 
-# 依存関係をインストール
-COPY requirements.txt /app/
+# Copy the current directory contents into the container at /app
+COPY . /my_codes
+
+# Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# FastAPIアプリケーションのコードをコピー
-COPY app /app
+RUN chmod -R 777 /my_codes/app
 
-# Expose port 8000 for FastAPI to run on
-EXPOSE 8000
+WORKDIR /my_codes/app
 
-# Command to run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+RUN mkdir CACHE && chmod -R 777 CACHE
+ENV TRANSFORMERS_CACHE CACHE
+ENV NUMBA_CACHE_DIR CACHE
+
+# Run app.py when the container launches
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
