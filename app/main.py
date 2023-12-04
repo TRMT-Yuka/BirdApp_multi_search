@@ -74,6 +74,11 @@ app.add_middleware(SessionMiddleware, secret_key="your_secret_key")
 # ja_model = BertModel.from_pretrained('cl-tohoku/bert-base-japanese-whole-word-masking')
 
 # # =============言語埋め込み
+def read_bin(filename):
+    with open(filename,'rb') as bf:
+        bin_data = pickle.load(bf)
+    return bin_data
+
 # with open('data/en_name_vecs.bin','rb') as bf:
 #     en_name_vecs = pickle.load(bf)
 # print("en_name_vecs data loading is complete !")
@@ -90,6 +95,14 @@ app.add_middleware(SessionMiddleware, secret_key="your_secret_key")
 #     ja_aliases_vecs = pickle.load(bf)
 # print("ja_aliases_vecs data loading is complete !")
 # print("language vec data loading is complete !")
+
+eid2Lvec = read_bin('data/eid2Lvec.bin')
+jid2Lvec = read_bin('data/jid2Lvec.bin')
+bid2Gvec = read_bin('data/bid2Gvec.bin')
+bid2Svec = read_bin('data/bid2Svec.bin')
+
+tuples_bid_eid = read_bin('data/tuples_bid_eid.bin')
+tuples_bid_jid = read_bin('data/tuples_bid_jid.bin')
 
 print("setup is complete!")
 
@@ -230,7 +243,6 @@ def imgs_list(d_img_urls):
     return img_urls
 
 def d4html_empty(self_or_parent,n):#word検索ではnは無し，sound検索では_1,_2,_3
-    print(self_or_parent+"_taxon_name"+n)
     new_d ={
     self_or_parent+"_taxon_name"+n:"",
     self_or_parent+"_ja_name"+n:"",
@@ -243,7 +255,6 @@ def d4html_empty(self_or_parent,n):#word検索ではnは無し，sound検索で�
     return new_d
 
 def d4html(myself_d,self_or_parent,n):#word検索ではnは無し，sound検索では_1,_2,_3
-    print(self_or_parent+"_taxon_name"+n)
     new_d ={
     self_or_parent+"_taxon_name"+n:myself_d["taxon_name"],
     self_or_parent+"_ja_name"+n:myself_d["ja_name"],
@@ -486,15 +497,15 @@ def read_root():
 
 @app.get("/multi_search", response_class=HTMLResponse)
 async def read_root(request:Request, api_key:str=""):
-    api_key = request.session.get("api_key", "please_input_your_api_key")
+    api_key = request.session.get("api_key", "Please input your key")
     return templates.TemplateResponse("multi_search.html", {"request": request,"api_key":api_key})
 
 @app.post("/multi_search",response_class=HTMLResponse)
 async def multi_search(
     request:Request,
     api_key: str = Form(...),
-    e_query: str = Form(None),
-    j_query: str = Form(None),
+    query: str = Form(None),
+    lang: str = Form(None),
     Wikidata_id: str = Form(None),
     file: UploadFile = File(None)
 ):
@@ -506,30 +517,30 @@ async def multi_search(
     except:
         sound_data=None
 
-    if e_query is None and j_query is None and Wikidata_id is None and sound_data is None:
+    c = []
+    for var in [query,Wikidata_id,sound_data]:
+        c.append(int(var is not None))#None:0 other:1
+
+    if c == [0,0,0]:
         return templates.TemplateResponse("multi_search.html", 
-            {**{"request": request,
-            "api_key":api_key,
-            "message":"入力値がありません",
-            "max_cos_in_wikidata_1":"",
-            "max_cos_in_wikidata_2":"",
-            "max_cos_in_wikidata_3":"",
-            "gpt_ans_self_1":"",
-            "gpt_ans_parent_1":"",
-            "gpt_ans_children_1":"",
-            "gpt_ans_self_2":"",
-            "gpt_ans_parent_2":"",
-            "gpt_ans_children_2":"",
-            "gpt_ans_self_3":"",
-            "gpt_ans_parent_3":"",
-            "gpt_ans_children_3":""},
-            **d4html_empty("self","_1"),
-            **d4html_empty("parent","_1"),
-            **d4html_empty("self","_2"),
-            **d4html_empty("parent","_2"),
-            **d4html_empty("self","_3"),
-            **d4html_empty("parent","_3")
+            {**{"request": request,"api_key":api_key,"message":"入力値がありません",
+                "max_cos_in_wikidata_1":"","max_cos_in_wikidata_2":"","max_cos_in_wikidata_3":"",
+                "gpt_ans_self_1":"","gpt_ans_parent_1":"","gpt_ans_children_1":"",
+                "gpt_ans_self_2":"","gpt_ans_parent_2":"","gpt_ans_children_2":"",
+                "gpt_ans_self_3":"","gpt_ans_parent_3":"","gpt_ans_children_3":""},
+                **d4html_empty("self","_1"),**d4html_empty("parent","_1"),
+                **d4html_empty("self","_2"),**d4html_empty("parent","_2"),
+                **d4html_empty("self","_3"),**d4html_empty("parent","_3")
             })
+
+    
+
+    result = [a[i] if bit == 1 else b[i] if bit == 0 else c[i] for i, bit in enumerate(input_pattern)]
+
+
+
+    
+
 
     # with open("uploaded/"+file.filename, "wb") as f:
     #     f.write(await file.read())

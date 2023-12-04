@@ -11,30 +11,34 @@
             <label for="api_key">ChatGPT API Key&nbsp;</label>
             <input type="text" id="api_key" name="api_key" value="{{ api_key }}" required>
 
-            <br><br>
-            <label>英語検索　　</label>
-            <input class=long-input type="text" name="e_query" placeholder="Input bird name">
+            <br><br>該当項目を組合せて入力
 
             <br>
-            <label>日本語検索　</label>
-            <input class=long-input type="text" name="j_query" placeholder="鳥名を入力">
+            <label>　テキスト　&nbsp;</label>
+            <input class=long-input type="text" name="query" placeholder="Input bird name">
+            <label>&nbsp;言語</label>
+            <select name="lang">
+              <option value="en">English</option>
+              <option value="ja">日本語</option>
+            </select>
 
             <br>
-            <label>Wikidata ID&nbsp;</label>
-            <input class=long-input type="text" name="Wikidata_id" placeholder="IDを入力">
+            <label>　知識グラフ&nbsp;</label>
+            <input class=long-input type="text" name="Wikidata_id" placeholder="Input Wikidata ID">
 
             <br>
-            <label>音声検索　　</label>
+            <label>　音声データ&nbsp;</label>
             <input type="file" name="file" placeholder="Input bird song file">
             <br>&nbsp;&nbsp;&nbsp;&nbsp;↓
             <br>&nbsp;
-            <button type="submit" id="submit-button">検索</button>
+            <button type="submit" id="submit-button">submit</button>
 
         </div>
     </form>
 
     <br>
     {{ message }}
+
 
     <h3>類似度:{{ max_cos_in_wikidata_1 }}</h3>
     <blockquote class=smallArea>
