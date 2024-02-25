@@ -278,7 +278,7 @@ def multi_Search_top3(concat_vecs,input_v):
                 break
 
     return top_three_tuples
-    
+
 #=================================================マルチモーダル検索
 @app.get("/")
 def read_root():
@@ -327,45 +327,42 @@ async def multi_search(request:Request,
     else:
         (id1,cos1),(id2,cos2),(id3,cos3) = multi_Search_top3(ja_concat_vecs,input_vecs)
 
-    try:
-        ans_json_1 = id2ans(id1)
-        ans_json_2 = id2ans(id2)
-        ans_json_3 = id2ans(id3)
+    ans_json_1 = id2ans(id1)
+    ans_json_2 = id2ans(id2)
+    ans_json_3 = id2ans(id3)
 
-        gpt_ans_self_1 = ask_gpt3(ans_json_1["myself"],api_key)
-        gpt_ans_parent_1 = ask_gpt3(ans_json_1["my_parent"],api_key)
-        gpt_ans_children_1 = ask_gpt3(ans_json_1["my_children"],api_key)
+    gpt_ans_self_1 = ask_gpt3(ans_json_1["myself"],api_key)
+    gpt_ans_parent_1 = ask_gpt3(ans_json_1["my_parent"],api_key)
+    gpt_ans_children_1 = ask_gpt3(ans_json_1["my_children"],api_key)
 
-        gpt_ans_self_2 = ask_gpt3(ans_json_2["myself"],api_key)
-        gpt_ans_parent_2 = ask_gpt3(ans_json_2["my_parent"],api_key)
-        gpt_ans_children_2 = ask_gpt3(ans_json_2["my_children"],api_key)
+    gpt_ans_self_2 = ask_gpt3(ans_json_2["myself"],api_key)
+    gpt_ans_parent_2 = ask_gpt3(ans_json_2["my_parent"],api_key)
+    gpt_ans_children_2 = ask_gpt3(ans_json_2["my_children"],api_key)
 
-        gpt_ans_self_3 = ask_gpt3(ans_json_3["myself"],api_key)
-        gpt_ans_parent_3 = ask_gpt3(ans_json_3["my_parent"],api_key)
-        gpt_ans_children_3 = ask_gpt3(ans_json_3["my_children"],api_key)
+    gpt_ans_self_3 = ask_gpt3(ans_json_3["myself"],api_key)
+    gpt_ans_parent_3 = ask_gpt3(ans_json_3["my_parent"],api_key)
+    gpt_ans_children_3 = ask_gpt3(ans_json_3["my_children"],api_key)
 
-        return templates.TemplateResponse("multi_search.html", 
-            {**{"request": request,
-            "api_key":api_key,
-            "messeage":"",
-            "max_cos_in_wikidata_1":round(cos1,4),#類似度
-            "max_cos_in_wikidata_2":round(cos2,4),
-            "max_cos_in_wikidata_3":round(cos3,4),
-            "gpt_ans_self_1": gpt_ans_self_1,
-            "gpt_ans_parent_1": gpt_ans_parent_1,
-            "gpt_ans_children_1": gpt_ans_children_1,
-            "gpt_ans_self_2": gpt_ans_self_2,
-            "gpt_ans_parent_2": gpt_ans_parent_2,
-            "gpt_ans_children_2": gpt_ans_children_2,
-            "gpt_ans_self_3": gpt_ans_self_3,
-            "gpt_ans_parent_3": gpt_ans_parent_3,
-            "gpt_ans_children_3": gpt_ans_children_3},
-            **d4html(ans_json_1["myself"],"self","_1"),
-            **d4html(ans_json_1["my_parent"],"parent","_1"),
-            **d4html(ans_json_2["myself"],"self","_2"),
-            **d4html(ans_json_2["my_parent"],"parent","_2"),
-            **d4html(ans_json_3["myself"],"self","_3"),
-            **d4html(ans_json_3["my_parent"],"parent","_3")
-            })
-    except:
-        return None
+    return templates.TemplateResponse("multi_search.html", 
+        {**{"request": request,
+        "api_key":api_key,
+        "messeage":"",
+        "max_cos_in_wikidata_1":round(cos1,4),#類似度
+        "max_cos_in_wikidata_2":round(cos2,4),
+        "max_cos_in_wikidata_3":round(cos3,4),
+        "gpt_ans_self_1": gpt_ans_self_1,
+        "gpt_ans_parent_1": gpt_ans_parent_1,
+        "gpt_ans_children_1": gpt_ans_children_1,
+        "gpt_ans_self_2": gpt_ans_self_2,
+        "gpt_ans_parent_2": gpt_ans_parent_2,
+        "gpt_ans_children_2": gpt_ans_children_2,
+        "gpt_ans_self_3": gpt_ans_self_3,
+        "gpt_ans_parent_3": gpt_ans_parent_3,
+        "gpt_ans_children_3": gpt_ans_children_3},
+        **d4html(ans_json_1["myself"],"self","_1"),
+        **d4html(ans_json_1["my_parent"],"parent","_1"),
+        **d4html(ans_json_2["myself"],"self","_2"),
+        **d4html(ans_json_2["my_parent"],"parent","_2"),
+        **d4html(ans_json_3["myself"],"self","_3"),
+        **d4html(ans_json_3["my_parent"],"parent","_3")
+        })
