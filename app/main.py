@@ -141,7 +141,8 @@ def ask_gpt3(question,api_key,max_tokens=2600):
     json_string = json.dumps(question)
 
     response = openai.Completion.create(
-        engine="text-davinci-003",
+        # engine="text-davinci-003",
+        engine="gpt-3.5-turbo-instruct",
         # prompt=bird_prompt+f"{question}\n",
         prompt=bird_prompt+json_string,
         max_tokens=max_tokens,
@@ -289,7 +290,7 @@ def read_root():
 
 @app.get("/multi_search", response_class=HTMLResponse)
 async def read_root(request:Request, api_key:str=""):
-    api_key = request.session.get("api_key", "Please input your key")
+    api_key = request.session.get("api_key", "")
     return templates.TemplateResponse("multi_search.html", {"request": request,"api_key":api_key})
 
 @app.post("/multi_search",response_class=HTMLResponse)

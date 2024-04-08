@@ -1,11 +1,52 @@
----
-title: Multimodal Bird Search
-emoji: 📉
-colorFrom: purple
-colorTo: green
-sdk: docker
-pinned: false
-license: unknown
----
 
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+# 本アプリケーションについて
+
+本マルチモーダル鳥類検索システムは、知識グラフ、自然言語キーワード、音響データなどの異なるモダリティからの埋め込みを統合し、包括的で柔軟な鳥類種検索を促進する。この研究では、単一のモダリティでは検索が困難な鳥類を特定するために、複数のモダリティを組み合わせることの重要性を示しています。このシステムのアーキテクチャは、言語データと音響データの処理に、それぞれBERTとwav2vec2.0のような機械学習モデルを利用している。さらに、鳥類種の情報を階層的に構造化するために、ウィキデータから派生した知識グラフを採用している。
+
+# API起動方法
+
+## コマンドラインを使用する場合
+
+1. 以下のコマンドでディレクトリを`app`に移動します。
+   ```bash
+   cd app
+   ```
+
+2. 次に、以下のコマンドのいずれかを使用してAPIを起動します。
+   - Uvicornを使用してAPIを起動:
+     ```bash
+     uvicorn main:app --reload
+     ```
+   - `start_app`スクリプトを実行:
+     ```bash
+     start_app実行
+     ```
+
+## Windows PowerShellからの実行
+
+- クエリを送信するには、以下のコマンドを使用します。
+  - `curl`を使用:
+    ```powershell
+    curl "http://127.0.0.1:8000/ja_search?query=ヤマゲラ"
+    ```
+  - `Invoke-RestMethod`を使用:
+    ```powershell
+    Invoke-RestMethod -Uri "http://127.0.0.1:8000/ja_search?query=ヤマゲラ"
+    ```
+
+## GUIを使用する場合
+
+- 次のURLにアクセスしてAPIのGUIを使用します。
+  - ドキュメントページへのアクセス:
+    ```
+    http://127.0.0.1:8000/docs#/
+    ```
+  - 自作GUIを使用:
+    - 単語検索用:
+      ```
+      http://127.0.0.1:8000/word_search
+      ```
+    - 音声検索用:
+      ```
+      http://127.0.0.1:8000/sound_search
+      ```
